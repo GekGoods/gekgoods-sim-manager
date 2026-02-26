@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
-import net.typeblog.lpac_jni.ProfileDownloadCallback
+import net.typeblog.lpac_jni.ProfileDownloadInput
 
 /**
  * An Android Service wrapper for EuiccChannelManager.
@@ -379,13 +379,8 @@ class EuiccChannelManagerService : LifecycleService(), OpenEuiccContextMarker {
     }
 
     fun launchProfileDownloadTask(
-        slotId: Int,
-        portId: Int,
-        seId: EuiccChannel.SecureElementId,
-        smdp: String,
-        matchingId: String?,
-        confirmationCode: String?,
-        imei: String?
+        slotId: Int, portId: Int, seId: EuiccChannel.SecureElementId,
+        input: ProfileDownloadInput
     ): ForegroundTaskSubscriberFlow =
         launchForegroundTask(
             getString(R.string.task_profile_download),
@@ -394,18 +389,10 @@ class EuiccChannelManagerService : LifecycleService(), OpenEuiccContextMarker {
         ) {
             euiccChannelManager.beginTrackedOperation(slotId, portId, seId) {
                 euiccChannelManager.withEuiccChannel(slotId, portId, seId) { channel ->
-                    channel.lpa.downloadProfile(
-                        smdp,
-                        matchingId,
-                        imei,
-                        confirmationCode,
-                        object : ProfileDownloadCallback {
-                            override fun onStateUpdate(state: ProfileDownloadCallback.DownloadState) {
-                                if (state.progress == 0) return
-                                foregroundTaskState.value =
-                                    ForegroundTaskState.InProgress(state.progress)
-                            }
-                        })
+                    channel.lpa.downloadProfile(input) { state ->
+                        if (state.progress == 0) return@downloadProfile
+                        foregroundTaskState.value = ForegroundTaskState.InProgress(state.progress)
+                    }
                 }
 
                 preferenceRepository.notificationDownloadFlow.first()

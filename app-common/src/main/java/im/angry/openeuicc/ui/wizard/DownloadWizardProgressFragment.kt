@@ -18,8 +18,9 @@ import im.angry.openeuicc.util.*
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import net.typeblog.lpac_jni.ProfileDownloadInput
+import net.typeblog.lpac_jni.ProfileDownloadState
 import net.typeblog.lpac_jni.LocalProfileAssistant
-import net.typeblog.lpac_jni.ProfileDownloadCallback
 
 class DownloadWizardProgressFragment : DownloadWizardActivity.DownloadWizardStepFragment() {
     companion object {
@@ -27,11 +28,11 @@ class DownloadWizardProgressFragment : DownloadWizardActivity.DownloadWizardStep
          * An array of LPA-side state types, mapping 1:1 to progressItems
          */
         val LPA_PROGRESS_STATES = arrayOf(
-            ProfileDownloadCallback.DownloadState.Preparing,
-            ProfileDownloadCallback.DownloadState.Connecting,
-            ProfileDownloadCallback.DownloadState.Authenticating,
-            ProfileDownloadCallback.DownloadState.Downloading,
-            ProfileDownloadCallback.DownloadState.Finalizing,
+            ProfileDownloadState.Preparing,
+            ProfileDownloadState.Connecting,
+            ProfileDownloadState.Authenticating,
+            ProfileDownloadState.Downloading,
+            ProfileDownloadState.Finalizing,
         )
     }
 
@@ -166,13 +167,8 @@ class DownloadWizardProgressFragment : DownloadWizardActivity.DownloadWizardStep
             state.downloadStarted = true
 
             val ret = euiccChannelManagerService.launchProfileDownloadTask(
-                slotId,
-                portId,
-                seId,
-                state.smdp,
-                state.matchingId,
-                state.confirmationCode,
-                state.imei
+                slotId, portId, seId,
+                ProfileDownloadInput(state.smdp, state.matchingId, state.imei, state.confirmationCode)
             )
 
             state.downloadTaskID = ret.taskId
@@ -183,7 +179,7 @@ class DownloadWizardProgressFragment : DownloadWizardActivity.DownloadWizardStep
     private fun updateProgress(progress: Int) {
         showProgressBar(progress)
 
-        val lpaState = ProfileDownloadCallback.lookupStateFromProgress(progress)
+        val lpaState = ProfileDownloadState.lookupStateFromProgress(progress)
         val stateIndex = LPA_PROGRESS_STATES.indexOf(lpaState)
 
         if (stateIndex > 0) {
