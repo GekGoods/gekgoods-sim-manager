@@ -72,11 +72,9 @@ class NotificationsActivity : BaseEuiccAccessActivity(), OpenEuiccContextMarker 
             intent.getParcelableExtra("seId")
         } ?: EuiccChannel.SecureElementId.DEFAULT
 
-        // This is slightly different from the MainActivity logic
-        // due to the length (we don't want to display the full USB product name)
         setChannelTitle(
             if (logicalSlotId == EuiccChannelManager.USB_CHANNEL_ID)
-                getString(R.string.channel_type_usb) else
+                getString(R.string.channel_name_format_usb) else
                 appContainer.customizableTextProvider.formatNonUsbChannelName(logicalSlotId)
         )
 
@@ -135,10 +133,13 @@ class NotificationsActivity : BaseEuiccAccessActivity(), OpenEuiccContextMarker 
     private fun refresh() {
         launchTask {
             notificationAdapter.notifications = withEuiccChannel { channel ->
-                if (channel.hasMultipleSE && logicalSlotId != EuiccChannelManager.USB_CHANNEL_ID) {
+                if (channel.hasMultipleSE) {
                     withContext(Dispatchers.Main) {
-                        val channelTitle = appContainer.customizableTextProvider
-                            .formatNonUsbChannelNameWithSeId(logicalSlotId, seId)
+                        val channelTitle = if (logicalSlotId == EuiccChannelManager.USB_CHANNEL_ID) {
+                            getString(R.string.channel_name_format_usb_se, seId.id)
+                        } else {
+                            appContainer.customizableTextProvider.formatNonUsbChannelNameWithSeId(logicalSlotId, seId)
+                        }
                         setChannelTitle(channelTitle)
                     }
                 }

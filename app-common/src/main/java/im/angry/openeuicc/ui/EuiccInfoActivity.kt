@@ -78,7 +78,7 @@ class EuiccInfoActivity : BaseEuiccAccessActivity(), OpenEuiccContextMarker {
 
         setChannelTitle(
             if (logicalSlotId == EuiccChannelManager.USB_CHANNEL_ID)
-                getString(R.string.channel_type_usb) else
+                getString(R.string.channel_name_format_usb) else
                 appContainer.customizableTextProvider.formatNonUsbChannelName(logicalSlotId)
         )
 
@@ -114,13 +114,13 @@ class EuiccInfoActivity : BaseEuiccAccessActivity(), OpenEuiccContextMarker {
 
         lifecycleScope.launch {
             euiccChannelManager.withEuiccChannel(logicalSlotId, seId) { channel ->
-                // When the chip multi-SE, we need to include seId in the title (because we don't have access
-                // to hasMultipleSE in the onCreate() function, we need to do it here).
-                // TODO: Move channel formatting to somewhere centralized and remove this hack. (And also, of course, add support for USB)
-                if (channel.hasMultipleSE && logicalSlotId != EuiccChannelManager.USB_CHANNEL_ID) {
+                if (channel.hasMultipleSE) {
                     withContext(Dispatchers.Main) {
-                        val title = appContainer.customizableTextProvider
-                            .formatNonUsbChannelNameWithSeId(logicalSlotId, seId)
+                        val title = if (logicalSlotId == EuiccChannelManager.USB_CHANNEL_ID) {
+                            getString(R.string.channel_name_format_usb_se, seId.id)
+                        } else {
+                            appContainer.customizableTextProvider.formatNonUsbChannelNameWithSeId(logicalSlotId, seId)
+                        }
                         setChannelTitle(title)
                     }
                 }
