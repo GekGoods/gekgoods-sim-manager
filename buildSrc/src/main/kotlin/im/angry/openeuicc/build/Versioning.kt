@@ -38,16 +38,20 @@ class MyVersioningPlugin : Plugin<Project> {
         target.configure<BaseAppModuleExtension> {
             defaultConfig {
                 versionCode = target.gitVersionCode
+                // format: <tag>[-<commits>-g<hash>][-dirty][-suffix]
                 versionName = target.getGitVersionName()
             }
 
             applicationVariants.all {
                 if (name == "debug") {
+                    val versionCode = (System.currentTimeMillis() / 1000).toInt()
+                    // format: <tag>-<commits>-g<hash>[-dirty][-suffix]
+                    val versionName = target.getGitVersionName("--long")
+                    val versionNameSuffix = mergedFlavor.versionNameSuffix
                     outputs.forEach {
                         with(it as ApkVariantOutputImpl) {
-                            versionCodeOverride = (System.currentTimeMillis() / 1000).toInt()
-                            // always keep the format: <tag>-<commits>-g<hash>[-dirty]
-                            versionNameOverride = target.getGitVersionName("--long")
+                            versionCodeOverride = versionCode
+                            versionNameOverride = versionName + versionNameSuffix
                         }
                     }
                 }
