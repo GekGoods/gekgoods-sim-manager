@@ -49,8 +49,16 @@ class OmapiApduInterface(
     override fun logicalChannelClose(handle: Int) {
         val channel = channels[handle]
         check(channel != null) { "Invalid logical channel handle $handle" }
-        if (channel.isOpen) channel.close()
-        synchronized(channels) { channels.remove(handle) }
+
+        try {
+            if (channel.isOpen) channel.close()
+        } catch (e: IllegalArgumentException) {
+            Log.w(TAG, "Logical channel was already closed by the modem", e)
+        } finally {
+            synchronized(channels) {
+                channels.remove(handle)
+            }
+        }
     }
 
     override fun transmit(handle: Int, tx: ByteArray): ByteArray {
