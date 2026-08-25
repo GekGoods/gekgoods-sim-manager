@@ -157,6 +157,7 @@ class DownloadWizardProgressFragment : DownloadWizardActivity.DownloadWizardStep
                 slotId, portId, seId,
                 ProfileDownloadInput(state.smdp, state.matchingId, state.imei, state.confirmationCode)
             )
+            ret.backChannel.send(true) // TODO: Ask user to confirm metadata for real if we need it
 
             state.downloadTaskID = ret.taskId
 

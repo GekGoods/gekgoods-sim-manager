@@ -404,11 +404,6 @@ class EuiccChannelManagerService : LifecycleService(), OpenEuiccContextMarker {
     fun launchProfileDownloadTask(
         slotId: Int, portId: Int, seId: EuiccChannel.SecureElementId,
         input: ProfileDownloadInput,
-        // Optionally, a Channel to send confirmation signal when metadata preview is received.
-        // When we emit a ForegroundTaskState.InProgress with ProfileDownloadState.ConfirmingMetadata,
-        // the caller can send a true/false value into this channel to either continue immediately or cancel the download.
-        // Note that there is a timeout of 1 minute, after which we default to cancelling.
-        // When absent, the default value is just a buffered channel with 1 true value in it, so effectively no-op.
     ): ForegroundTaskHandle =
         launchForegroundTask(
             getString(R.string.task_profile_download),
