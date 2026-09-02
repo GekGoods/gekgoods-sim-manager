@@ -36,6 +36,9 @@ jobs:
       - name: Setup Android SDK
         uses: https://gitea.angry.im/actions/setup-android@v3
 
+      - name: Run Tests
+        run: ./gradlew --no-daemon test
+
       - name: Build Debug APKs
         run: ./gradlew --no-daemon assembleDebug :app:assembleDebugMagiskModuleDir
 

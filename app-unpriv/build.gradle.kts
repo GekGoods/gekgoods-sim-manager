@@ -52,4 +52,5 @@ kotlin {
 
 dependencies {
     implementation(project(":app-common"))
+    testImplementation("junit:junit:4.13.2")
 }

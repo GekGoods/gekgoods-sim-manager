@@ -62,7 +62,8 @@ import net.typeblog.lpac_jni.ProfileDownloadState
  * lifecycle context and return a Flow instance for the UI component to subscribe to its
  * progress.
  */
-class EuiccChannelManagerService : LifecycleService(), OpenEuiccContextMarker {
+// open so that tests can substitute fakes for the service (see DownloadTaskLauncherTest)
+open class EuiccChannelManagerService : LifecycleService(), OpenEuiccContextMarker {
     companion object {
         private const val TAG = "EuiccChannelManagerService"
         private const val CHANNEL_ID = "tasks"
@@ -271,7 +272,8 @@ class EuiccChannelManagerService : LifecycleService(), OpenEuiccContextMarker {
         task: suspend EuiccChannelManagerService.(Channel<Any>) -> Unit
     ): ForegroundTaskHandle {
         val taskID = System.currentTimeMillis()
-        val backChannel = Channel<Any>()
+        // Buffered so that a subscriber's send() never blocks
+        val backChannel = Channel<Any>(capacity = Channel.BUFFERED)
 
         // Atomically set the state to InProgress. If this returns true, we are
         // the only task currently in progress.
@@ -396,12 +398,12 @@ class EuiccChannelManagerService : LifecycleService(), OpenEuiccContextMarker {
         )
     }
 
-    suspend fun waitForForegroundTask() {
+    open suspend fun waitForForegroundTask() {
         foregroundTaskState.takeWhile { it != ForegroundTaskState.Idle }
             .collect()
     }
 
-    fun launchProfileDownloadTask(
+    open fun launchProfileDownloadTask(
         slotId: Int, portId: Int, seId: EuiccChannel.SecureElementId,
         input: ProfileDownloadInput,
     ): ForegroundTaskHandle =

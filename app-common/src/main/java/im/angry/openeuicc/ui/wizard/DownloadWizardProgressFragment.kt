@@ -139,25 +139,21 @@ class DownloadWizardProgressFragment : DownloadWizardActivity.DownloadWizardStep
             // This will also return null if task ID is -1 (uninitialized), too
             euiccChannelManagerService.recoverForegroundTaskSubscriber(state.downloadTaskID)
         } else {
-            euiccChannelManagerService.waitForForegroundTask()
-
             val (logicalSlotId, seId) = DownloadWizardSlotSelectFragment.decodeSyntheticSlotId(state.selectedSyntheticSlotId)
-
-            val (slotId, portId) = euiccChannelManager.withEuiccChannel(
-                logicalSlotId,
-                seId
-            ) { channel ->
-                Pair(channel.slotId, channel.portId)
-            }
 
             // Set started to true even before we start -- in case we get killed in the middle
             state.downloadStarted = true
 
-            val ret = euiccChannelManagerService.launchProfileDownloadTask(
-                slotId, portId, seId,
+            // NOTE: Keep using launchProfileDownload() here; the UI ↔ service
+            // contract it implements (launch + auto-confirm metadata via the back
+            // channel) is covered by DownloadTaskLauncherTest.
+            val ret = launchProfileDownload(
+                euiccChannelManagerService,
+                euiccChannelManager,
+                logicalSlotId,
+                seId,
                 ProfileDownloadInput(state.smdp, state.matchingId, state.imei, state.confirmationCode)
             )
-            ret.backChannel.send(true) // TODO: Ask user to confirm metadata for real if we need it
 
             state.downloadTaskID = ret.taskId
 

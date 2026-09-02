@@ -33,6 +33,9 @@ jobs:
       - name: Setup Android SDK
         uses: https://gitea.angry.im/actions/setup-android@v3
 
+      - name: Run Tests
+        run: ./gradlew --no-daemon test
+
       - name: Build Release APK (Unprivileged / EasyEUICC only)
         run: ./gradlew --no-daemon :app-unpriv:assembleRelease
 
