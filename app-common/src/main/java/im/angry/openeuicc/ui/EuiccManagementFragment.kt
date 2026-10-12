@@ -242,6 +242,7 @@ open class EuiccManagementFragment : Fragment(), EuiccProfilesChangedListener,
     }
 
     private fun enableOrDisableProfile(iccid: String, enable: Boolean) {
+        SeDiagnostics.event(this, "ui.switch.request", "slot=$slotId port=$portId enable=$enable")
         swipeRefresh.isRefreshing = true
         fab.isEnabled = false
 
@@ -249,12 +250,15 @@ open class EuiccManagementFragment : Fragment(), EuiccProfilesChangedListener,
             ensureEuiccChannelManager()
             euiccChannelManagerService.waitForForegroundTask()
 
-            val err = euiccChannelManagerService
+            val handle = euiccChannelManagerService
                 .launchProfileSwitchTask(
                     slotId, portId, seId, iccid, enable,
                     reconnectTimeoutMillis = 30 * 1000
                 )
-                .stateFlow.waitDone()
+            SeDiagnostics.event(this@EuiccManagementFragment, "ui.switch.wait", "taskId=${handle.taskId}")
+            val err = handle.stateFlow.waitDone()
+            SeDiagnostics.event(this@EuiccManagementFragment, "ui.switch.done",
+                "taskId=${handle.taskId} outcome=${err?.javaClass?.simpleName ?: "returned"}")
 
             when (err) {
                 null -> {}
@@ -262,10 +266,17 @@ open class EuiccManagementFragment : Fragment(), EuiccProfilesChangedListener,
                     // This is only really fatal for internal eSIMs
                     if (!isUsb) {
                         withContext(Dispatchers.Main) {
+                            SeDiagnostics.event(this@EuiccManagementFragment, "ui.warning.shown", "reason=refreshRefused")
                             AlertDialog.Builder(requireContext(), R.style.AlertDialogTheme)
                                 .setMessage(R.string.profile_switch_did_not_refresh)
-                                .setPositiveButton(android.R.string.ok) { _, _ -> requireActivity().finish() }
-                                .setOnDismissListener { _ -> requireActivity().finish() }
+                                .setPositiveButton(android.R.string.ok) { _, _ ->
+                                    SeDiagnostics.event(this@EuiccManagementFragment, "ui.warning.ok.finish", "reason=refreshRefused")
+                                    requireActivity().finish()
+                                }
+                                .setOnDismissListener { _ ->
+                                    SeDiagnostics.event(this@EuiccManagementFragment, "ui.warning.dismiss.finish", "reason=refreshRefused")
+                                    requireActivity().finish()
+                                }
                                 .show()
                         }
                     }
@@ -275,11 +286,20 @@ open class EuiccManagementFragment : Fragment(), EuiccProfilesChangedListener,
                     withContext(Dispatchers.Main) {
                         // Prevent this Fragment from being used again
                         invalid = true
+                        SeDiagnostics.event(this@EuiccManagementFragment, "ui.warning.shown", "reason=reconnectTimeout invalid=true")
                         // Timed out waiting for SIM to come back online, we can no longer assume that the LPA is still valid
                         AlertDialog.Builder(requireContext(), R.style.AlertDialogTheme)
-                            .setMessage(appContainer.customizableTextProvider.profileSwitchingTimeoutMessage)
-                            .setPositiveButton(android.R.string.ok) { _, _ -> requireActivity().finish() }
-                            .setOnDismissListener { _ -> requireActivity().finish() }
+                            .setMessage(if (!isUsb && appContainer.euiccChannelFactory.isOmapiQuarantined)
+                                getString(R.string.profile_switch_timeout_quarantined)
+                            else appContainer.customizableTextProvider.profileSwitchingTimeoutMessage)
+                            .setPositiveButton(android.R.string.ok) { _, _ ->
+                                SeDiagnostics.event(this@EuiccManagementFragment, "ui.warning.ok.finish", "reason=reconnectTimeout")
+                                requireActivity().finish()
+                            }
+                            .setOnDismissListener { _ ->
+                                SeDiagnostics.event(this@EuiccManagementFragment, "ui.warning.dismiss.finish", "reason=reconnectTimeout")
+                                requireActivity().finish()
+                            }
                             .show()
                     }
                 }
@@ -287,7 +307,9 @@ open class EuiccManagementFragment : Fragment(), EuiccProfilesChangedListener,
                 else -> showSwitchFailureText()
             }
 
+            SeDiagnostics.event(this@EuiccManagementFragment, "ui.postSwitchRefresh.enter", "invalid=$invalid")
             refresh()
+            SeDiagnostics.event(this@EuiccManagementFragment, "ui.postSwitchRefresh.exit", "invalid=$invalid")
             fab.isEnabled = true
         }
     }

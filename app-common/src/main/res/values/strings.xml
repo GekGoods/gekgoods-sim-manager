@@ -32,6 +32,8 @@
     <string name="profile_rename">Rename</string>
 
     <string name="profile_switch_timeout">Timed out waiting for the eSIM chip to switch profiles. This may be a bug in your phone\'s modem firmware. Try toggling airplane mode, restarting the application, or rebooting the phone.</string>
+    <string name="profile_switch_timeout_quarantined">The eSIM connection timed out. Your modem may still finish switching profiles. To avoid a Samsung cleanup bug, OMAPI management is paused until you reboot the phone. Press OK to close this screen without bulk OMAPI cleanup.</string>
+    <string name="omapi_timeout_requires_reboot">OMAPI management is paused after a reconnect timeout. Your active SIM profile may still work. Reboot the phone before using OMAPI again; restarting this app or toggling airplane mode does not clear this protection.</string>
     <string name="profile_switch_did_not_refresh">The operation was successful, but your phone\'s modem refused to refresh. You might need to toggle airplane mode or reboot in order to use the new profile.</string>
 
     <string name="toast_profile_enable_failed">Cannot switch to new eSIM profile.</string>

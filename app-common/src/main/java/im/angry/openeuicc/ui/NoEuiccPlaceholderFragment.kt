@@ -17,7 +17,9 @@ class NoEuiccPlaceholderFragment : Fragment(), OpenEuiccContextMarker {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_no_euicc_placeholder, container, false)
         val textView = view.requireViewById<TextView>(R.id.no_euicc_placeholder)
-        textView.text = appContainer.customizableTextProvider.noEuiccExplanation
+        textView.text = if (appContainer.euiccChannelFactory.isOmapiQuarantined)
+            getString(R.string.omapi_timeout_requires_reboot)
+        else appContainer.customizableTextProvider.noEuiccExplanation
         return view
     }
 }

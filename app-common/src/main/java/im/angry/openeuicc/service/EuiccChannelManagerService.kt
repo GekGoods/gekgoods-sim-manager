@@ -165,10 +165,10 @@ open class EuiccChannelManagerService : LifecycleService(), OpenEuiccContextMark
         return LocalBinder()
     }
 
-    override fun onDestroy() {
+    override fun onDestroy() = SeDiagnostics.trace(this, "service.onDestroy") {
         super.onDestroy()
         if (euiccChannelManagerDelegate.isInitialized()) {
-            euiccChannelManager.invalidate()
+            SeDiagnostics.trace(this, "service.manager.invalidate") { euiccChannelManager.invalidate() }
         }
     }
 
@@ -282,11 +282,14 @@ open class EuiccChannelManagerService : LifecycleService(), OpenEuiccContextMark
                 ForegroundTaskState.InProgress(0)
             )
         ) {
+            SeDiagnostics.event(this, "task.rejected", "taskId=$taskID")
             return ForegroundTaskHandle(
                 taskID,
                 flow { emit(ForegroundTaskState.Done(IllegalStateException("There are tasks currently running"))) },
                 backChannel)
         }
+
+        SeDiagnostics.event(this, "task.admitted", "taskId=$taskID")
 
         lifecycleScope.launch(Dispatchers.Main) {
             // Wait until our self-start command has succeeded.
@@ -314,7 +317,10 @@ open class EuiccChannelManagerService : LifecycleService(), OpenEuiccContextMark
                 }
                 // This update will be sent by the subscriber (as shown below)
                 foregroundTaskState.value = ForegroundTaskState.Done(null)
+                SeDiagnostics.event(this@EuiccChannelManagerService, "task.done", "taskId=$taskID returned=true")
             } catch (t: Throwable) {
+                SeDiagnostics.event(this@EuiccChannelManagerService, "task.done",
+                    "taskId=$taskID returned=false type=${t.javaClass.simpleName}")
                 Log.e(TAG, "Foreground task encountered an error")
                 Log.e(TAG, Log.getStackTraceString(t))
                 foregroundTaskState.value = ForegroundTaskState.Done(t)
@@ -325,6 +331,7 @@ open class EuiccChannelManagerService : LifecycleService(), OpenEuiccContextMark
             } finally {
                 wakeLock.release()
                 if (isActive) {
+                    SeDiagnostics.event(this@EuiccChannelManagerService, "task.stopSelf", "taskId=$taskID")
                     stopSelf()
                 }
             }
@@ -509,51 +516,56 @@ open class EuiccChannelManagerService : LifecycleService(), OpenEuiccContextMark
             getString(R.string.task_profile_switch_failure),
             R.drawable.ic_task_switch
         ) { _ ->
-            euiccChannelManager.beginTrackedOperation(slotId, portId, seId) {
-                val (response, refreshed) =
-                    euiccChannelManager.withEuiccChannel(slotId, portId, seId) { channel ->
-                        val refresh = preferenceRepository.refreshAfterSwitchFlow.first()
-                        val response = channel.lpa.switchProfile(iccid, enable, refresh)
-                        if (response || !refresh) {
-                            Pair(response, refresh)
-                        } else {
-                            // refresh failed, but refresh was requested
-                            // Sometimes, we *can* enable or disable the profile, but we cannot
-                            // send the refresh command to the modem because the profile somehow
-                            // makes the modem "busy". In this case, we can still switch by setting
-                            // refresh to false, but then the switch cannot take effect until the
-                            // user resets the modem manually by toggling airplane mode or rebooting.
-                            Pair(
-                                channel.lpa.switchProfile(iccid, enable, refresh = false),
-                                false
-                            )
+            SeDiagnostics.traceSuspending(this, "switch.task",
+                "slot=$slotId port=$portId enable=$enable timeoutMs=$reconnectTimeoutMillis") {
+                euiccChannelManager.beginTrackedOperation(slotId, portId, seId) {
+                    val (response, refreshed) =
+                        euiccChannelManager.withEuiccChannel(slotId, portId, seId) { channel ->
+                            val refresh = preferenceRepository.refreshAfterSwitchFlow.first()
+                            val response = channel.lpa.switchProfile(iccid, enable, refresh)
+                            SeDiagnostics.event(this, "switch.response", "accepted=$response refreshRequested=$refresh")
+                            if (response || !refresh) {
+                                Pair(response, refresh)
+                            } else {
+                                // refresh failed, but refresh was requested
+                                // Sometimes, we *can* enable or disable the profile, but we cannot
+                                // send the refresh command to the modem because the profile somehow
+                                // makes the modem "busy". In this case, we can still switch by setting
+                                // refresh to false, but then the switch cannot take effect until the
+                                // user resets the modem manually by toggling airplane mode or rebooting.
+                                Pair(
+                                    channel.lpa.switchProfile(iccid, enable, refresh = false),
+                                    false
+                                )
+                            }
                         }
+
+                    if (!response) {
+                        throw RuntimeException("Could not switch profile")
                     }
 
-                if (!response) {
-                    throw RuntimeException("Could not switch profile")
+                    if (!refreshed && slotId != EuiccChannelManager.USB_CHANNEL_ID) {
+                        SeDiagnostics.event(this, "switch.refresh.refused")
+                        // We may have switched the profile, but we could not refresh. Tell the caller about this
+                        // but only if we are talking to a modem and not a USB reader
+                        throw SwitchingProfilesRefreshException()
+                    }
+
+                    if (reconnectTimeoutMillis > 0) {
+                        // Add an unconditional delay first to account for any race condition between
+                        // the card sending the refresh command and the modem actually refreshing
+                        delay(reconnectTimeoutMillis / 10)
+
+                        // This throws TimeoutCancellationException if timed out
+                        euiccChannelManager.waitForReconnect(
+                            slotId,
+                            portId,
+                            reconnectTimeoutMillis / 10 * 9
+                        )
+                    }
+
+                    preferenceRepository.notificationSwitchFlow.first()
                 }
-
-                if (!refreshed && slotId != EuiccChannelManager.USB_CHANNEL_ID) {
-                    // We may have switched the profile, but we could not refresh. Tell the caller about this
-                    // but only if we are talking to a modem and not a USB reader
-                    throw SwitchingProfilesRefreshException()
-                }
-
-                if (reconnectTimeoutMillis > 0) {
-                    // Add an unconditional delay first to account for any race condition between
-                    // the card sending the refresh command and the modem actually refreshing
-                    delay(reconnectTimeoutMillis / 10)
-
-                    // This throws TimeoutCancellationException if timed out
-                    euiccChannelManager.waitForReconnect(
-                        slotId,
-                        portId,
-                        reconnectTimeoutMillis / 10 * 9
-                    )
-                }
-
-                preferenceRepository.notificationSwitchFlow.first()
             }
         }
 

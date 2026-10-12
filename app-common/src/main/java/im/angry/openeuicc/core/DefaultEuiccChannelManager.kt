@@ -5,12 +5,15 @@ import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.telephony.SubscriptionManager
 import android.util.Log
+import im.angry.openeuicc.common.BuildConfig
+import im.angry.openeuicc.common.R
 import im.angry.openeuicc.core.usb.UsbCcidContext
 import im.angry.openeuicc.core.usb.interfaces
 import im.angry.openeuicc.core.usb.smartCard
 import im.angry.openeuicc.di.AppContainer
 import im.angry.openeuicc.util.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -127,6 +130,11 @@ open class DefaultEuiccChannelManager(
             }
 
             // First get all channels for the requested port
+            if (euiccChannelFactory.isOmapiQuarantined) {
+                // Forget quarantined OMAPI objects without calling into the damaged backend.
+                // Other backends (e.g. privileged TelephonyManager) may still be usable.
+                channelCache.removeAll { it.type == context.getString(R.string.channel_type_omapi) }
+            }
             val existing =
                 channelCache.filter { it.slotId == port.card.physicalSlotIndex && it.portId == port.portIndex }
             if (existing.isNotEmpty()) {
@@ -280,66 +288,92 @@ open class DefaultEuiccChannelManager(
         }
     }
 
-    override suspend fun waitForReconnect(physicalSlotId: Int, portId: Int, timeoutMillis: Long) {
-        val numChannelsBefore = if (physicalSlotId == EuiccChannelManager.USB_CHANNEL_ID) {
-            usbChannels.size
-        } else {
-            // Don't use find* methods since they reopen channels if not found
-            channelCache.filter { it.slotId == physicalSlotId && it.portId == portId }.size
-        }
-
-        val resetChannels = {
-            if (physicalSlotId == EuiccChannelManager.USB_CHANNEL_ID) {
-                usbChannels.forEach { it.close() }
-                usbChannels.clear()
+    override suspend fun waitForReconnect(physicalSlotId: Int, portId: Int, timeoutMillis: Long) =
+        SeDiagnostics.traceSuspending(this, "manager.reconnect",
+            "slot=$physicalSlotId port=$portId timeoutMs=$timeoutMillis") {
+            val numChannelsBefore = if (physicalSlotId == EuiccChannelManager.USB_CHANNEL_ID) {
+                usbChannels.size
             } else {
-                // If there is already a valid channel, we close it proactively
-                val staleChannels = channelCache.filter {
-                    it.slotId == physicalSlotId && it.portId == portId
-                }
-                // Remove stale entries even when the platform rejects a second close. Keeping
-                // them in the cache makes every retry attempt close the same broken channel.
-                channelCache.removeAll(staleChannels.toSet())
-                staleChannels.forEach { channel ->
-                    try {
-                        channel.close()
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Failed to close channel while reconnecting", e)
-                    }
-                }
+                // Don't use find* methods since they reopen channels if not found
+                channelCache.filter { it.slotId == physicalSlotId && it.portId == portId }.size
             }
-        }
+            val reconnectingOmapi = physicalSlotId != EuiccChannelManager.USB_CHANNEL_ID &&
+                channelCache.any { it.slotId == physicalSlotId && it.portId == portId &&
+                    it.type == context.getString(R.string.channel_type_omapi) }
 
-        resetChannels()
-
-        withTimeout(timeoutMillis) {
-            while (true) {
-                try {
-                    val channels = if (physicalSlotId == EuiccChannelManager.USB_CHANNEL_ID) {
-                        // tryOpenUsbEuiccChannel() will always try to reopen the channel, even if
-                        // a USB channel already exists
-                        tryOpenUsbEuiccChannel()
-                        usbChannels
+            val resetChannels = {
+                SeDiagnostics.event(this, "manager.reconnect.reset.begin")
+                if (physicalSlotId == EuiccChannelManager.USB_CHANNEL_ID) {
+                    usbChannels.forEach { it.close() }
+                    usbChannels.clear()
+                } else {
+                    // If there is already a valid channel, we close it proactively
+                    if (BuildConfig.SAMSUNG_CHANNEL_RECOVERY) {
+                        val staleChannels = channelCache.filter {
+                            it.slotId == physicalSlotId && it.portId == portId
+                        }
+                        // Remove stale entries even when the platform rejects a second close. Keeping
+                        // them in the cache makes every retry attempt close the same broken channel.
+                        channelCache.removeAll(staleChannels.toSet())
+                        staleChannels.forEach { channel ->
+                            try {
+                                SeDiagnostics.trace(channel, "manager.reconnect.channel.close") { channel.close() }
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Failed to close channel while reconnecting", e)
+                            }
+                        }
                     } else {
-                        // tryOpenEuiccChannel() will automatically dispose of invalid channels
-                        // and recreate when needed
-                        findEuiccChannelsByPort(physicalSlotId, portId)!!
+                        channelCache.filter { it.slotId == physicalSlotId && it.portId == portId }
+                            .forEach { it.close() }
                     }
-                    check(channels.isNotEmpty()) { "No channel" }
-                    check(channels.all { it.valid }) { "Invalid channel" }
-                    check(numChannelsBefore > 0 && channels.size >= numChannelsBefore) { "Less channels than before" }
-                    break
-                } catch (e: Exception) {
-                    Log.d(
-                        TAG,
-                        "Slot $physicalSlotId port $portId reconnect failure, retrying in 1000 ms"
-                    )
-                    resetChannels()
                 }
-                delay(1000)
+                SeDiagnostics.event(this, "manager.reconnect.reset.end")
+            }
+
+            resetChannels()
+
+            try {
+                withTimeout(timeoutMillis) {
+                    var attempt = 0
+                    while (true) {
+                        attempt += 1
+                        SeDiagnostics.event(this@DefaultEuiccChannelManager, "manager.reconnect.attempt", "attempt=$attempt")
+                        try {
+                            val channels = if (physicalSlotId == EuiccChannelManager.USB_CHANNEL_ID) {
+                                // tryOpenUsbEuiccChannel() will always try to reopen the channel, even if
+                                // a USB channel already exists
+                                tryOpenUsbEuiccChannel()
+                                usbChannels
+                            } else {
+                                // tryOpenEuiccChannel() will automatically dispose of invalid channels
+                                // and recreate when needed
+                                findEuiccChannelsByPort(physicalSlotId, portId)!!
+                            }
+                            check(channels.isNotEmpty()) { "No channel" }
+                            check(channels.all { it.valid }) { "Invalid channel" }
+                            check(numChannelsBefore > 0 && channels.size >= numChannelsBefore) { "Less channels than before" }
+                            SeDiagnostics.event(this@DefaultEuiccChannelManager, "manager.reconnect.ready", "attempt=$attempt")
+                            break
+                        } catch (e: Exception) {
+                            SeDiagnostics.event(this@DefaultEuiccChannelManager, "manager.reconnect.failure",
+                                "attempt=$attempt type=${e.javaClass.simpleName}")
+                            Log.d(
+                                TAG,
+                                "Slot $physicalSlotId port $portId reconnect failure, retrying in 1000 ms"
+                            )
+                            resetChannels()
+                        }
+                        delay(1000)
+                    }
+                }
+            } catch (e: TimeoutCancellationException) {
+                if (reconnectingOmapi) {
+                    // Latch before the error reaches the UI and before any dismissal/teardown.
+                    euiccChannelFactory.markOmapiReconnectTimedOut()
+                }
+                throw e
             }
         }
-    }
 
     override fun flowInternalEuiccPorts(): Flow<Pair<Int, Int>> = flow {
         uiccCards.forEach { info ->
@@ -419,14 +453,19 @@ open class DefaultEuiccChannelManager(
             return@withContext Pair(null, false)
         }
 
-    override fun invalidate() {
+    override fun invalidate() = SeDiagnostics.trace(this, "manager.invalidate") {
         for (channel in channelCache) {
-            channel.close()
+            if (euiccChannelFactory.isOmapiQuarantined &&
+                channel.type == context.getString(R.string.channel_type_omapi)) {
+                SeDiagnostics.event(channel, "manager.invalidate.channel.abandoned", "reason=reconnectTimeout")
+                continue
+            }
+            SeDiagnostics.trace(channel, "manager.invalidate.channel.close") { channel.close() }
         }
 
         usbChannels.forEach { it.close() }
         usbChannels.clear()
         channelCache.clear()
-        euiccChannelFactory.cleanup()
+        SeDiagnostics.trace(this, "manager.factory.cleanup") { euiccChannelFactory.cleanup() }
     }
 }

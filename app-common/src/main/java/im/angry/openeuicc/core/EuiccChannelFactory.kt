@@ -6,6 +6,10 @@ import im.angry.openeuicc.util.*
 // This class is here instead of inside DI because it contains a bit more logic than just
 // "dumb" dependency injection.
 interface EuiccChannelFactory {
+    /** Default implementations leave non-OMAPI factories unaffected. */
+    val isOmapiQuarantined: Boolean get() = false
+    fun markOmapiReconnectTimedOut() {}
+
     suspend fun tryOpenEuiccChannel(
         port: UiccPortInfoCompat,
         isdrAid: ByteArray,

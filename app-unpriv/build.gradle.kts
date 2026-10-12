@@ -29,6 +29,8 @@ android {
 
     defaultConfig {
         applicationId = "com.gekgoods.simmanager"
+        // Preserve the installed test APK's code so subsequent versionCode=1 builds remain installable.
+        versionCode = 1
         minSdk = 28
         targetSdk = 37
     }
