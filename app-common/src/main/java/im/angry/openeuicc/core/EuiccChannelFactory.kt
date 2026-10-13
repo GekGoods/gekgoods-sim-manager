@@ -8,6 +8,9 @@ import im.angry.openeuicc.util.*
 interface EuiccChannelFactory {
     /** Default implementations leave non-OMAPI factories unaffected. */
     val isOmapiQuarantined: Boolean get() = false
+    val isOmapiCleanupUnsafe: Boolean get() = isOmapiQuarantined
+    val isOmapiProtectionEnabled: Boolean get() = false
+    fun tryResumeOmapiAfterTimeout(): Boolean = false
     fun markOmapiReconnectTimedOut() {}
 
     suspend fun tryOpenEuiccChannel(

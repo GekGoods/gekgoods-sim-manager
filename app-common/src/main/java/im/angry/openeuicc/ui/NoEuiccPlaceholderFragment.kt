@@ -20,6 +20,7 @@ class NoEuiccPlaceholderFragment : Fragment(), OpenEuiccContextMarker {
         textView.text = if (appContainer.euiccChannelFactory.isOmapiQuarantined)
             getString(R.string.omapi_timeout_requires_reboot)
         else appContainer.customizableTextProvider.noEuiccExplanation
+        bindOmapiRecoveryUi(view)
         return view
     }
 }

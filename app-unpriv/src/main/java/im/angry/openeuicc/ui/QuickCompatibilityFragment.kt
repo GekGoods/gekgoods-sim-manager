@@ -31,6 +31,7 @@ open class QuickCompatibilityFragment : Fragment(), UnprivilegedEuiccContextMark
         enum class Compatibility {
             COMPATIBLE,
             NOT_COMPATIBLE,
+            PAUSED,
         }
 
         data class CompatibilityResult(
@@ -99,6 +100,14 @@ open class QuickCompatibilityFragment : Fragment(), UnprivilegedEuiccContextMark
 
     private fun onCompatibilityUpdate(result: CompatibilityResult) {
         conclusion.text = formatConclusion(result)
+        if (result.compatibility == Compatibility.PAUSED) {
+            resultSlots.isVisible = false
+            resultSlotsIsdr.isVisible = false
+            resultNotes.isVisible = true
+            resultNotes.setText(im.angry.openeuicc.common.R.string.omapi_timeout_requires_reboot)
+            skipCheckBox.isVisible = false
+            return
+        }
         if (result.compatibility == Compatibility.COMPATIBLE) {
             val listFormatter = ListFormatter.getInstance(
                 ConfigurationCompat.getLocales(resources.configuration).get(0)
@@ -132,13 +141,21 @@ open class QuickCompatibilityFragment : Fragment(), UnprivilegedEuiccContextMark
     }
 
     private suspend fun getCompatibilityCheckResult(): CompatibilityResult {
+        if (appContainer.euiccChannelFactory.isOmapiQuarantined) {
+            SeDiagnostics.event(this, "omapi.compatibility.blocked", "reason=reconnectTimeout")
+            return CompatibilityResult(Compatibility.PAUSED)
+        }
         val service = connectSEService(requireContext())
+        if (appContainer.euiccChannelFactory.isOmapiQuarantined) {
+            return CompatibilityResult(Compatibility.PAUSED)
+        }
         if (!service.isConnected) {
             return CompatibilityResult(Compatibility.NOT_COMPATIBLE)
         }
         val readers = service.readers.filter(Reader::isSIM)
         val omapiSlots = readers.mapNotNull(Reader::slotIndex)
         val slots = readers.mapNotNull { reader ->
+            if (appContainer.euiccChannelFactory.isOmapiQuarantined) return@mapNotNull null
             try {
                 // Note: we ONLY check the default ISD-R AID, because this test is for the _device_,
                 // NOT the eUICC. We don't care what AID a potential eUICC might use, all we need to
@@ -154,6 +171,9 @@ open class QuickCompatibilityFragment : Fragment(), UnprivilegedEuiccContextMark
                 null
             }
         }
+        if (appContainer.euiccChannelFactory.isOmapiQuarantined) {
+            return CompatibilityResult(Compatibility.PAUSED)
+        }
         if (omapiSlots.isEmpty()) {
             return CompatibilityResult(Compatibility.NOT_COMPATIBLE)
         }
@@ -166,9 +186,13 @@ open class QuickCompatibilityFragment : Fragment(), UnprivilegedEuiccContextMark
     }
 
     open fun formatConclusion(result: CompatibilityResult): String {
+        if (result.compatibility == Compatibility.PAUSED) {
+            return getString(im.angry.openeuicc.common.R.string.omapi_state_blocked)
+        }
         val usbHost = requireContext().packageManager
             .hasSystemFeature(PackageManager.FEATURE_USB_HOST)
         val resId = when (result.compatibility) {
+            Compatibility.PAUSED -> error("Handled above")
             Compatibility.COMPATIBLE ->
                 R.string.quick_compatibility_compatible
 

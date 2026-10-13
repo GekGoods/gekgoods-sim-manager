@@ -14,6 +14,8 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
+import androidx.appcompat.app.AlertDialog
+import im.angry.openeuicc.core.OmapiWorkaroundSettings
 import im.angry.openeuicc.common.R
 import im.angry.openeuicc.util.*
 import kotlinx.coroutines.flow.collect
@@ -30,6 +32,7 @@ open class SettingsFragment : PreferenceFragmentCompat(), OpenEuiccContextMarker
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.pref_settings, rootKey)
+        bindOmapiSettings()
 
         developerPref = requirePreference("pref_developer")
 
@@ -101,6 +104,58 @@ open class SettingsFragment : PreferenceFragmentCompat(), OpenEuiccContextMarker
             summary = uri.buildUpon().clearQuery().build().toString()
             intent = Intent(/* action = */ Intent.ACTION_VIEW, uri)
         }
+    }
+
+    private fun bindOmapiSettings() {
+        val settings = OmapiWorkaroundSettings(requireContext())
+        val factory = appContainer.euiccChannelFactory
+        val modePref = requirePreference<ListPreference>("pref_omapi_protection_mode")
+        val recoveryPref = requirePreference<Preference>("pref_omapi_recovery")
+        modePref.entries = arrayOf(getString(R.string.omapi_mode_automatic),
+            getString(R.string.omapi_mode_always), getString(R.string.omapi_mode_disabled))
+        modePref.entryValues = arrayOf("automatic", "always", "disabled")
+        fun refreshStatus() {
+            modePref.value = settings.mode
+            val enabled = settings.isEnabled
+            val state = when {
+                factory.isOmapiQuarantined -> getString(R.string.omapi_state_blocked)
+                factory.isOmapiCleanupUnsafe -> getString(R.string.omapi_state_recovery)
+                else -> getString(R.string.omapi_state_normal)
+            }
+            modePref.summary = getString(R.string.omapi_mode_status, modePref.entry,
+                getString(if (enabled) R.string.omapi_enabled else R.string.omapi_disabled),
+                Build.MANUFACTURER, state)
+            recoveryPref.isVisible = factory.isOmapiQuarantined
+        }
+        fun saveMode(mode: String) {
+            try {
+                settings.mode = mode
+                SeDiagnostics.event(factory, "omapi.policy.changed", "mode=$mode enabled=${settings.isEnabled} cleanupUnsafe=${factory.isOmapiCleanupUnsafe}")
+            } catch (_: Exception) {
+                Toast.makeText(requireContext(), R.string.omapi_mode_save_failed, Toast.LENGTH_LONG).show()
+            }
+            refreshStatus()
+        }
+        modePref.setOnPreferenceChangeListener { _, value ->
+            val mode = value as String
+            if (mode == "disabled") {
+                AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.omapi_mode_disabled)
+                    .setMessage(R.string.omapi_disable_warning)
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(android.R.string.ok) { _, _ -> saveMode(mode) }
+                    .show()
+            } else saveMode(mode)
+            false // Persist synchronously in the guard's policy store, not PreferenceManager.
+        }
+        recoveryPref.setOnPreferenceClickListener {
+            showOmapiRecoveryDialog(factory) {
+                refreshStatus()
+                Toast.makeText(requireContext(), R.string.omapi_recovery_return, Toast.LENGTH_LONG).show()
+            }
+            true
+        }
+        refreshStatus()
     }
 
     protected fun <T : Preference> requirePreference(key: CharSequence) =

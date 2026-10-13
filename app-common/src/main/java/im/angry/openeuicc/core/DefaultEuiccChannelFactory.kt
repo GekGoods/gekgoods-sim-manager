@@ -1,23 +1,24 @@
 package im.angry.openeuicc.core
 
 import android.content.Context
-import android.os.Build
 import android.se.omapi.SEService
 import android.util.Log
 import im.angry.openeuicc.common.R
-import im.angry.openeuicc.common.BuildConfig
 import im.angry.openeuicc.core.usb.UsbApduInterface
 import im.angry.openeuicc.core.usb.UsbCcidContext
 import im.angry.openeuicc.util.*
 
 open class DefaultEuiccChannelFactory(protected val context: Context) : EuiccChannelFactory {
     private var seService: SEService? = null
+    private val workaroundSettings = OmapiWorkaroundSettings(context)
     protected open val timeoutGuard: OmapiTimeoutGuard by lazy {
-        OmapiTimeoutGuard(context, BuildConfig.SAMSUNG_CHANNEL_RECOVERY &&
-            Build.MANUFACTURER.equals("samsung", ignoreCase = true))
+        OmapiTimeoutGuard(context, true, enabledProvider = { workaroundSettings.isEnabled })
     }
 
     override val isOmapiQuarantined: Boolean get() = timeoutGuard.isBlocked
+    override val isOmapiCleanupUnsafe: Boolean get() = timeoutGuard.isCleanupUnsafe
+    override val isOmapiProtectionEnabled: Boolean get() = workaroundSettings.isEnabled
+    override fun tryResumeOmapiAfterTimeout(): Boolean = timeoutGuard.tryResume()
 
     override fun markOmapiReconnectTimedOut() = timeoutGuard.markReconnectTimedOut()
 
@@ -56,7 +57,8 @@ open class DefaultEuiccChannelFactory(protected val context: Context) : EuiccCha
                 OmapiApduInterface(
                     seService!!,
                     port,
-                    context.preferenceRepository.verboseLoggingFlow
+                    context.preferenceRepository.verboseLoggingFlow,
+                    skipSessionClose = { isOmapiProtectionEnabled || isOmapiCleanupUnsafe }
                 ),
                 isdrAid,
                 seId,
@@ -103,7 +105,7 @@ open class DefaultEuiccChannelFactory(protected val context: Context) : EuiccCha
     }
 
     override fun cleanup() = SeDiagnostics.trace(this, "factory.cleanup") {
-        if (isOmapiQuarantined) {
+        if (isOmapiCleanupUnsafe) {
             // Keep this reference: dropping/reconnecting it is not a service-side repair.
             // shutdown() would call Reader.closeSessions(), bypassing the Session.close skip.
             SeDiagnostics.event(this, "omapi.shutdown.skipped", "reason=reconnectTimeout")

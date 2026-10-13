@@ -1,35 +1,29 @@
 package im.angry.openeuicc.core
 
-import android.os.Build
 import android.se.omapi.Channel
 import android.se.omapi.SEService
 import android.se.omapi.Session
 import android.util.Log
-import im.angry.openeuicc.common.BuildConfig
 import im.angry.openeuicc.util.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import net.typeblog.lpac_jni.ApduInterface
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 class OmapiApduInterface(
     private val service: SEService,
     private val port: UiccPortInfoCompat,
-    private val verboseLoggingFlow: Flow<Boolean>
+    private val verboseLoggingFlow: Flow<Boolean>,
+    private val skipSessionClose: () -> Boolean = { false }
 ) : ApduInterface, ApduInterfaceAtrProvider {
     companion object {
         const val TAG = "OmapiApduInterface"
-        private const val ONE_UI_VERSION_PROPERTY = "ro.build.version.oneui"
-        private const val ONE_UI_8_5_VERSION = 80500L
-        private const val ONE_UI_PROPERTY_READ_TIMEOUT_MS = 1_000L
     }
 
     private lateinit var session: Session
     private val index = AtomicInteger(0)
     private val channels = mutableMapOf<Int, Channel>()
-    private val oneUiVersion: Long? by lazy { readOneUiVersion() }
 
     override val valid: Boolean
         get() = service.isConnected && (this::session.isInitialized && !session.isClosed)
@@ -45,59 +39,13 @@ class OmapiApduInterface(
     }
 
     override fun disconnect() = SeDiagnostics.trace(this, "omapi.disconnect") {
-        if (
-            BuildConfig.SAMSUNG_CHANNEL_RECOVERY &&
-            Build.MANUFACTURER.equals("samsung", ignoreCase = true) &&
-            oneUiVersion?.let { it < ONE_UI_8_5_VERSION } == true
-        ) {
-            Log.i(TAG, "Skipping OMAPI Session.close() on Samsung One UI below 8.5")
+        if (skipSessionClose()) {
+            Log.i(TAG, "Skipping OMAPI Session.close() while cleanup protection is active")
             SeDiagnostics.event(this, "omapi.session.close.skipped")
             return@trace
         }
 
         SeDiagnostics.trace(session, "omapi.session.close") { session.close() }
-    }
-
-    private fun readOneUiVersion(): Long? {
-        val process = try {
-            ProcessBuilder("/system/bin/getprop", ONE_UI_VERSION_PROPERTY)
-                .redirectErrorStream(true)
-                .start()
-        } catch (e: Exception) {
-            Log.w(TAG, "Unable to start getprop; closing OMAPI session normally", e)
-            return null
-        }
-
-        try {
-            if (!process.waitFor(ONE_UI_PROPERTY_READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-                process.destroyForcibly()
-                Log.w(TAG, "Timed out reading Samsung One UI version; closing OMAPI session normally")
-                return null
-            }
-
-            val version = process.inputStream.bufferedReader().use {
-                it.readText().trim().toLongOrNull()
-            }
-            if (version == null || version <= 0L) {
-                Log.w(TAG, "Unable to parse Samsung One UI version; closing OMAPI session normally")
-                return null
-            }
-
-            return version
-        } catch (e: InterruptedException) {
-            process.destroyForcibly()
-            Thread.currentThread().interrupt()
-            Log.w(TAG, "Interrupted while reading Samsung One UI version; closing OMAPI session normally", e)
-            return null
-        } catch (e: Exception) {
-            process.destroyForcibly()
-            Log.w(TAG, "Unable to read Samsung One UI version; closing OMAPI session normally", e)
-            return null
-        } finally {
-            runCatching { process.inputStream.close() }
-            runCatching { process.errorStream.close() }
-            runCatching { process.outputStream.close() }
-        }
     }
 
     override fun logicalChannelOpen(aid: ByteArray): Int {

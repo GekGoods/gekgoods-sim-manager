@@ -26,6 +26,16 @@
         app:iconSpaceReserved="false"
         app:key="pref_advanced"
         app:title="@string/pref_advanced">
+        <ListPreference
+            app:iconSpaceReserved="false"
+            app:key="pref_omapi_protection_mode"
+            app:persistent="false"
+            app:title="@string/pref_omapi_protection_title" />
+        <Preference
+            app:iconSpaceReserved="false"
+            app:key="pref_omapi_recovery"
+            app:title="@string/omapi_recovery_title"
+            app:summary="@string/omapi_recovery_warning" />
         <CheckBoxPreference
             app:iconSpaceReserved="false"
             app:key="pref_advanced_disable_safeguard_removable_esim"

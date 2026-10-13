@@ -19,7 +19,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.util.ReflectionHelpers
+import org.robolectric.shadows.ShadowBuild
 import java.util.concurrent.Executor
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.io.IOException
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
@@ -30,6 +35,7 @@ class OmapiTimeoutGuardTest {
     fun setUp() {
         context = RuntimeEnvironment.getApplication()
         context.getSharedPreferences("omapi_timeout_guard", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("omapi_workaround_settings", Context.MODE_PRIVATE).edit().clear().commit()
     }
 
     private fun guard(boot: Int = 42, enabled: Boolean = true) =
@@ -88,14 +94,14 @@ class OmapiTimeoutGuardTest {
     }
 
     @Test
-    fun `disabled guard ignores a marker and preserves healthy cleanup`() {
+    fun `disabling protection cannot clear a previously unsafe boot`() {
         guard().markReconnectTimedOut()
         val factory = RecordingFactory(context, guard(enabled = false))
         factory.markOmapiReconnectTimedOut()
-        assertFalse(factory.isOmapiQuarantined)
+        assertTrue(factory.isOmapiQuarantined)
         installFakeService(factory)
         factory.cleanup()
-        assertEquals(1, factory.shutdownCalls)
+        assertEquals(0, factory.shutdownCalls)
     }
 
     @Test
@@ -109,6 +115,90 @@ class OmapiTimeoutGuardTest {
     fun `unavailable boot identity cannot clear a known marker`() {
         guard(42).markReconnectTimedOut()
         assertTrue(OmapiTimeoutGuard(context, true) { throw SecurityException() }.isBlocked)
+    }
+
+    @Test
+    fun `explicit recovery permits opening but never restores bulk shutdown`() {
+        val guard = guard()
+        val factory = RecordingFactory(context, guard)
+        installFakeService(factory)
+        factory.markOmapiReconnectTimedOut()
+        assertTrue(factory.tryResumeOmapiAfterTimeout())
+        assertFalse(factory.isOmapiQuarantined)
+        factory.cleanup()
+        assertEquals(0, factory.shutdownCalls)
+        assertTrue("Process restart must require another explicit override", guard().isBlocked)
+        factory.markOmapiReconnectTimedOut()
+        assertTrue("Another timeout must revoke recovery permission", factory.isOmapiQuarantined)
+    }
+
+    @Test
+    fun `always mode enables protection on a non Samsung device`() {
+        ShadowBuild.setManufacturer("ExampleVendor")
+        context.getSharedPreferences("omapi_workaround_settings", Context.MODE_PRIVATE)
+            .edit().putString("mode", "always").commit()
+        val factory = DefaultEuiccChannelFactory(context)
+        factory.markOmapiReconnectTimedOut()
+        assertTrue(factory.isOmapiQuarantined)
+    }
+
+    @Test
+    fun `disabled mode on Samsung does not arm a healthy boot`() {
+        ShadowBuild.setManufacturer("samsung")
+        context.getSharedPreferences("omapi_workaround_settings", Context.MODE_PRIVATE)
+            .edit().putString("mode", "disabled").commit()
+        val factory = DefaultEuiccChannelFactory(context)
+        factory.markOmapiReconnectTimedOut()
+        assertFalse(factory.isOmapiQuarantined)
+    }
+
+    @Test
+    fun `timeout overlapping a recovery request revokes permission`() {
+        guard().markReconnectTimedOut()
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val recoveringGuard = OmapiTimeoutGuard(context, true) {
+            if (Thread.currentThread().name == "test-recovery") {
+                entered.countDown()
+                check(release.await(2, TimeUnit.SECONDS))
+            }
+            42
+        }
+        val worker = Thread({ recoveringGuard.tryResume() }, "test-recovery")
+        val timer = Executors.newSingleThreadScheduledExecutor()
+        try {
+            worker.start()
+            assertTrue(entered.await(2, TimeUnit.SECONDS))
+            // Release an in-flight open-gate check while timeout revocation is racing it.
+            timer.schedule({ release.countDown() }, 100, TimeUnit.MILLISECONDS)
+            recoveringGuard.markReconnectTimedOut()
+            worker.join(2000)
+            assertFalse(worker.isAlive)
+            assertTrue("The overlapping timeout must win over recovery", recoveringGuard.isBlocked)
+        } finally {
+            release.countDown()
+            worker.join(2000)
+            timer.shutdownNow()
+        }
+    }
+
+    @Test
+    fun `OMAPI protection does not swallow a TelephonyManager close failure`() = runBlocking {
+        ShadowBuild.setManufacturer("samsung")
+        val factory = RecordingFactory(context, guard())
+        val manager = manager(factory)
+        val channel = object : EuiccChannel by MockEuiccChannel(0, 0) {
+            override val type = "TelephonyManager"
+            override fun close() { throw IOException("test close failure") }
+        }
+        ReflectionHelpers.setField(manager, "channelCache", mutableListOf(channel))
+        try {
+            manager.waitForReconnect(0, 0, 30)
+            fail("Expected original close failure")
+        } catch (e: Exception) {
+            assertTrue("OMAPI setting must not change the other backend's close behavior", e is IOException)
+            assertFalse(factory.isOmapiQuarantined)
+        }
     }
 
     private fun manager(factory: RecordingFactory) = object : DefaultEuiccChannelManager(

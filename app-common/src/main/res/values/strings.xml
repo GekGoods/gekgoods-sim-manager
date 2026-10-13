@@ -32,8 +32,24 @@
     <string name="profile_rename">Rename</string>
 
     <string name="profile_switch_timeout">Timed out waiting for the eSIM chip to switch profiles. This may be a bug in your phone\'s modem firmware. Try toggling airplane mode, restarting the application, or rebooting the phone.</string>
-    <string name="profile_switch_timeout_quarantined">The eSIM connection timed out. Your modem may still finish switching profiles. To avoid a Samsung cleanup bug, OMAPI management is paused until you reboot the phone. Press OK to close this screen without bulk OMAPI cleanup.</string>
-    <string name="omapi_timeout_requires_reboot">OMAPI management is paused after a reconnect timeout. Your active SIM profile may still work. Reboot the phone before using OMAPI again; restarting this app or toggling airplane mode does not clear this protection.</string>
+    <string name="profile_switch_timeout_quarantined">The eSIM connection timed out. Your modem may still finish switching profiles. To avoid a firmware cleanup bug, OMAPI management is paused. Reboot is recommended; experimental recovery is available when you reopen the app. Press OK to close this screen without bulk OMAPI cleanup.</string>
+    <string name="omapi_timeout_requires_reboot">OMAPI management is paused after a reconnect timeout, not because your adapter is missing. Your active SIM profile may still work. Reboot is recommended. Experimental recovery can try a new connection without bulk cleanup; retained channels may accumulate. Restarting this app or toggling airplane mode does not clear this protection.</string>
+    <string name="pref_omapi_protection_title">OMAPI cleanup protection</string>
+    <string name="omapi_mode_automatic">Automatic</string>
+    <string name="omapi_mode_always">Always enabled</string>
+    <string name="omapi_mode_disabled">Disabled</string>
+    <string name="omapi_enabled">enabled</string>
+    <string name="omapi_disabled">disabled</string>
+    <string name="omapi_mode_status">%1$s — %2$s (manufacturer: %3$s). %4$s Automatic protects all Samsung versions; a One UI 8.5 fix is unverified.</string>
+    <string name="omapi_state_normal">No timeout cleanup latch.</string>
+    <string name="omapi_state_blocked">Timeout cleanup protection latched; new connections blocked until reboot or explicit experimental recovery.</string>
+    <string name="omapi_state_recovery">Experimental recovery allowed in this process; timeout cleanup protection remains latched until reboot.</string>
+    <string name="omapi_disable_warning">Normal OMAPI cleanup may trigger a secure-element CPU pin on affected firmware. Disabling prevents protection on future healthy connections; it cannot clear timeout cleanup protection already latched in this boot.</string>
+    <string name="omapi_mode_save_failed">Could not save the OMAPI protection mode.</string>
+    <string name="omapi_recovery_title">Try reconnecting — experimental</string>
+    <string name="omapi_recovery_warning">Reboot is safer. This action permits new OMAPI connections in this app process without bulk-closing suspect sessions. It does not repair the old channels. Repeated recovery may retain channels or memory, exhaust modem resources, or still trigger firmware faults. Another timeout blocks connections again. Continue only for controlled testing.</string>
+    <string name="omapi_recovery_confirm">Try reconnecting</string>
+    <string name="omapi_recovery_return">Recovery allowed. Return to the main screen and refresh to scan again.</string>
     <string name="profile_switch_did_not_refresh">The operation was successful, but your phone\'s modem refused to refresh. You might need to toggle airplane mode or reboot in order to use the new profile.</string>
 
     <string name="toast_profile_enable_failed">Cannot switch to new eSIM profile.</string>

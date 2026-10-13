@@ -8,16 +8,20 @@ import im.angry.openeuicc.util.SeDiagnostics
 class OmapiTimeoutGuard(
     context: Context,
     private val enabled: Boolean,
+    private val enabledProvider: () -> Boolean = { enabled },
     private val bootCount: () -> Int = {
         Settings.Global.getInt(context.contentResolver, Settings.Global.BOOT_COUNT, -1)
     }
 ) {
     private val preferences = context.getSharedPreferences("omapi_timeout_guard", Context.MODE_PRIVATE)
     @Volatile private var blockedInThisProcess = false
+    @Volatile private var recoveryAllowedInThisProcess = false
 
     val isBlocked: Boolean
+        get() = isCleanupUnsafe && !recoveryAllowedInThisProcess
+
+    val isCleanupUnsafe: Boolean
         get() {
-            if (!enabled) return false
             if (blockedInThisProcess) return true
             val markedBoot = preferences.getInt("unsafe_boot", Int.MIN_VALUE)
             if (markedBoot == Int.MIN_VALUE) return false
@@ -26,8 +30,10 @@ class OmapiTimeoutGuard(
             return markedBoot < 0 || currentBoot < 0 || markedBoot == currentBoot
         }
 
+    @Synchronized
     fun markReconnectTimedOut() {
-        if (!enabled) return
+        if (!enabledProvider() && !isCleanupUnsafe) return
+        recoveryAllowedInThisProcess = false
         blockedInThisProcess = true
         val boot = currentBootCount()
         val persisted = try {
@@ -36,6 +42,15 @@ class OmapiTimeoutGuard(
             false
         }
         SeDiagnostics.event(this, "omapi.quarantine.marked", "persisted=$persisted bootKnown=${boot >= 0}")
+    }
+
+    /** Only lift the open gate. Never erase the unsafe-boot marker or authorize bulk cleanup. */
+    @Synchronized
+    fun tryResume(): Boolean {
+        if (!isBlocked) return false
+        recoveryAllowedInThisProcess = true
+        SeDiagnostics.event(this, "omapi.recovery.allowed", "scope=process cleanupUnsafe=true")
+        return true
     }
 
     private fun currentBootCount(): Int = try {

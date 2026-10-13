@@ -16,6 +16,17 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <com.google.android.material.button.MaterialButton
+        android:id="@+id/omapi_recovery"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:visibility="gone"
+        android:text="@string/omapi_recovery_title"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/no_euicc_placeholder" />
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/compatibility_check"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

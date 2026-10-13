@@ -5,7 +5,6 @@ import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.telephony.SubscriptionManager
 import android.util.Log
-import im.angry.openeuicc.common.BuildConfig
 import im.angry.openeuicc.common.R
 import im.angry.openeuicc.core.usb.UsbCcidContext
 import im.angry.openeuicc.core.usb.interfaces
@@ -144,7 +143,8 @@ open class DefaultEuiccChannelManager(
                     // If any channel shouldn't be considered valid anymore, close all existing for the same slot / port
                     // and reopen
                     existing.forEach {
-                        it.close()
+                        if (!(euiccChannelFactory.isOmapiCleanupUnsafe &&
+                            it.type == context.getString(R.string.channel_type_omapi))) it.close()
                         channelCache.remove(it)
                     }
                 }
@@ -308,7 +308,8 @@ open class DefaultEuiccChannelManager(
                     usbChannels.clear()
                 } else {
                     // If there is already a valid channel, we close it proactively
-                    if (BuildConfig.SAMSUNG_CHANNEL_RECOVERY) {
+                    if (reconnectingOmapi &&
+                        (euiccChannelFactory.isOmapiProtectionEnabled || euiccChannelFactory.isOmapiCleanupUnsafe)) {
                         val staleChannels = channelCache.filter {
                             it.slotId == physicalSlotId && it.portId == portId
                         }
@@ -316,6 +317,11 @@ open class DefaultEuiccChannelManager(
                         // them in the cache makes every retry attempt close the same broken channel.
                         channelCache.removeAll(staleChannels.toSet())
                         staleChannels.forEach { channel ->
+                            if (euiccChannelFactory.isOmapiCleanupUnsafe &&
+                                channel.type == context.getString(R.string.channel_type_omapi)) {
+                                SeDiagnostics.event(channel, "manager.reconnect.channel.abandoned", "reason=reconnectTimeout")
+                                return@forEach
+                            }
                             try {
                                 SeDiagnostics.trace(channel, "manager.reconnect.channel.close") { channel.close() }
                             } catch (e: Exception) {
@@ -455,7 +461,7 @@ open class DefaultEuiccChannelManager(
 
     override fun invalidate() = SeDiagnostics.trace(this, "manager.invalidate") {
         for (channel in channelCache) {
-            if (euiccChannelFactory.isOmapiQuarantined &&
+            if (euiccChannelFactory.isOmapiCleanupUnsafe &&
                 channel.type == context.getString(R.string.channel_type_omapi)) {
                 SeDiagnostics.event(channel, "manager.invalidate.channel.abandoned", "reason=reconnectTimeout")
                 continue

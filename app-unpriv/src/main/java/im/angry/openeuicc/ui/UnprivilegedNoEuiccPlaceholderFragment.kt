@@ -24,6 +24,8 @@ class UnprivilegedNoEuiccPlaceholderFragment : Fragment() {
             startActivity(Intent(requireContext(), QuickCompatibilityActivity::class.java))
         }
 
+        bindOmapiRecoveryUi(view, view.findViewById(R.id.compatibility_check))
+
         return view
     }
 }
