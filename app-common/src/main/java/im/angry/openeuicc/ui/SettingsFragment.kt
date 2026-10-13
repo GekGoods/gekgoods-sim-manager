@@ -111,20 +111,33 @@ open class SettingsFragment : PreferenceFragmentCompat(), OpenEuiccContextMarker
         val factory = appContainer.euiccChannelFactory
         val modePref = requirePreference<ListPreference>("pref_omapi_protection_mode")
         val recoveryPref = requirePreference<Preference>("pref_omapi_recovery")
-        modePref.entries = arrayOf(getString(R.string.omapi_mode_automatic),
-            getString(R.string.omapi_mode_always), getString(R.string.omapi_mode_disabled))
         modePref.entryValues = arrayOf("automatic", "always", "disabled")
         fun refreshStatus() {
-            modePref.value = settings.mode
             val enabled = settings.isEnabled
-            val state = when {
-                factory.isOmapiQuarantined -> getString(R.string.omapi_state_blocked)
-                factory.isOmapiCleanupUnsafe -> getString(R.string.omapi_state_recovery)
-                else -> getString(R.string.omapi_state_normal)
+            val automaticEnabled = Build.MANUFACTURER.equals("samsung", ignoreCase = true)
+            modePref.entries = arrayOf(
+                getString(R.string.omapi_automatic_device_status,
+                    getString(if (automaticEnabled) R.string.omapi_status_on else R.string.omapi_status_off)),
+                getString(R.string.omapi_mode_always), getString(R.string.omapi_mode_disabled))
+            modePref.value = settings.mode
+            val effectiveStatus = when {
+                !enabled && factory.isOmapiCleanupUnsafe -> getString(R.string.omapi_status_on_latched)
+                enabled -> getString(R.string.omapi_status_on)
+                else -> getString(R.string.omapi_status_off)
             }
-            modePref.summary = getString(R.string.omapi_mode_status, modePref.entry,
-                getString(if (enabled) R.string.omapi_enabled else R.string.omapi_disabled),
-                Build.MANUFACTURER, state)
+            modePref.title = getString(R.string.omapi_protection_status_title, effectiveStatus)
+            val reason = when (settings.mode) {
+                "always" -> getString(R.string.omapi_reason_manual)
+                "disabled" -> getString(R.string.omapi_reason_disabled)
+                else -> if (automaticEnabled) getString(R.string.omapi_reason_samsung)
+                    else getString(R.string.omapi_reason_other, Build.MANUFACTURER)
+            }
+            val state = when {
+                factory.isOmapiQuarantined -> getString(R.string.omapi_settings_latch_blocked)
+                factory.isOmapiCleanupUnsafe -> getString(R.string.omapi_settings_latch_recovery)
+                else -> getString(R.string.omapi_settings_latch_normal)
+            }
+            modePref.summary = getString(R.string.omapi_settings_status_summary, reason, state)
             recoveryPref.isVisible = factory.isOmapiQuarantined
         }
         fun saveMode(mode: String) {

@@ -30,6 +30,7 @@
             app:iconSpaceReserved="false"
             app:key="pref_omapi_protection_mode"
             app:persistent="false"
+            app:singleLineTitle="false"
             app:title="@string/pref_omapi_protection_title" />
         <Preference
             app:iconSpaceReserved="false"
