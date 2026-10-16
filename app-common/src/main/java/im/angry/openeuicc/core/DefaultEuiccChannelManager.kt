@@ -294,8 +294,19 @@ open class DefaultEuiccChannelManager(
                 usbChannels.clear()
             } else {
                 // If there is already a valid channel, we close it proactively
-                channelCache.filter { it.slotId == physicalSlotId && it.portId == portId }
-                    .forEach { it.close() }
+                val staleChannels = channelCache.filter {
+                    it.slotId == physicalSlotId && it.portId == portId
+                }
+                // Remove stale entries even when the platform rejects a second close. Keeping
+                // them in the cache makes every retry attempt close the same broken channel.
+                channelCache.removeAll(staleChannels.toSet())
+                staleChannels.forEach { channel ->
+                    try {
+                        channel.close()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to close channel while reconnecting", e)
+                    }
+                }
             }
         }
 

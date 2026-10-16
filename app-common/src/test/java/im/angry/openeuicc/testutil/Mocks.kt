@@ -136,6 +136,9 @@ class MockEuiccChannel(
     override val portId: Int,
     override val lpa: LocalProfileAssistant = MockLpa()
 ) : EuiccChannel {
+    var closeCalls = 0
+    var closeFailure: Exception? = null
+
     override val type = "mock"
     override val port = FakeUiccPortInfoCompat(FakeUiccCardInfoCompat(slotId))
     override val logicalSlotId = slotId
@@ -154,7 +157,10 @@ class MockEuiccChannel(
     }
 
     override val isdrAid = ByteArray(0)
-    override fun close() {}
+    override fun close() {
+        closeCalls += 1
+        closeFailure?.let { throw it }
+    }
 }
 
 /**
