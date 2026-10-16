@@ -3,6 +3,7 @@
     <color name="gekgoods_navy">#18465D</color>
     <color name="gekgoods_blue">#1F76A4</color>
     <color name="gekgoods_background">#EDEDEB</color>
+    <color name="gekgoods_control_normal">@color/gekgoods_navy</color>
 
     <color name="gekgoods_primary">@color/gekgoods_blue</color>
     <color name="gekgoods_on_primary">#FFFFFF</color>
