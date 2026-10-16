@@ -5,7 +5,7 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.widget.Toast
-import im.angry.easyeuicc.R
+import com.gekgoods.simmanager.R
 import im.angry.openeuicc.core.EuiccChannel
 import im.angry.openeuicc.util.*
 

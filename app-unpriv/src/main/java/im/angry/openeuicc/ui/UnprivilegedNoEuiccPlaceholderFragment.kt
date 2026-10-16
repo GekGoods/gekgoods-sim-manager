@@ -6,7 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import im.angry.easyeuicc.R
+import com.gekgoods.simmanager.R
 
 class UnprivilegedNoEuiccPlaceholderFragment : Fragment() {
     override fun onCreateView(

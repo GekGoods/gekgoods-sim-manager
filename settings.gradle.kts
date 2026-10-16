@@ -23,7 +23,7 @@ buildscript {
     }
 }
 
-rootProject.name = "OpenEUICC"
+rootProject.name = "GekGoodsSimManager"
 include(":app")
 include(":libs:hidden-apis-stub")
 include(":libs:hidden-apis-shim")

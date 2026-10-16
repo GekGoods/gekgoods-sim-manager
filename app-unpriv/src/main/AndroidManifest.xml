@@ -10,13 +10,8 @@
         android:localeConfig="@xml/locale_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.OpenEUICC"
+        android:theme="@style/Theme.GekGoods"
         tools:targetApi="tiramisu">
-
-        <!-- https://web.dev/get-installed-related-apps/?hl=en -->
-        <meta-data
-            android:name="asset_statements"
-            android:resource="@string/asset_statements" />
 
         <activity
             android:name="im.angry.openeuicc.ui.UnprivilegedMainActivity"

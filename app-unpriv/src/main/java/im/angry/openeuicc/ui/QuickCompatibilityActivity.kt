@@ -3,7 +3,7 @@ package im.angry.openeuicc.ui
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import im.angry.easyeuicc.R
+import com.gekgoods.simmanager.R
 import im.angry.openeuicc.di.UnprivilegedUiComponentFactory
 import im.angry.openeuicc.util.*
 
