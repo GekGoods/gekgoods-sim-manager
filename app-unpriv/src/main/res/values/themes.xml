@@ -22,7 +22,7 @@
         <!-- Keep legacy Android/AppCompat controls on the GekGoods palette. -->
         <item name="colorAccent">@color/gekgoods_blue</item>
         <item name="colorControlActivated">@color/gekgoods_blue</item>
-        <item name="colorControlNormal">@color/gekgoods_navy</item>
+        <item name="colorControlNormal">@color/gekgoods_control_normal</item>
     </style>
 
 </resources>
