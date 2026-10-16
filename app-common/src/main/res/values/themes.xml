@@ -21,12 +21,32 @@
         <item name="dialogCornerRadius">28dp</item>
     </style>
 
+    <style name="AlertDialogDestructiveTheme" parent="AlertDialogTheme">
+        <item name="buttonBarPositiveButtonStyle">@style/DestructivePositiveButtonStyle</item>
+    </style>
+
     <style name="NegativeButtonStyle" parent="Widget.Material3.Button.TextButton.Dialog">
-        <item name="android:textColor">?attr/colorSecondary</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
     </style>
 
     <style name="PositiveButtonStyle" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">?attr/colorPrimary</item>
+    </style>
+
+    <style name="DestructivePositiveButtonStyle" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">?attr/colorError</item>
+    </style>
+
+    <style name="Widget.OpenEUICC.Button.Primary" parent="Widget.Material3.Button">
+        <item name="backgroundTint">?attr/colorPrimary</item>
+        <item name="android:textColor">?attr/colorOnPrimary</item>
+        <item name="iconTint">?attr/colorOnPrimary</item>
+    </style>
+
+    <style name="Widget.OpenEUICC.Button.Secondary" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">?attr/colorSecondary</item>
         <item name="android:textColor">?attr/colorSecondary</item>
+        <item name="iconTint">?attr/colorSecondary</item>
     </style>
 
     <style name="Theme.AppCompat.Translucent" parent="Theme.AppCompat.NoActionBar">

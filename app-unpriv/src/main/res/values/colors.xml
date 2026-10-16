@@ -1,9 +1,14 @@
 <resources>
-    <color name="gekgoods_primary">#1F76A4</color>
+    <!-- GekGoods brand palette. Keep these three values as the visual anchors. -->
+    <color name="gekgoods_navy">#18465D</color>
+    <color name="gekgoods_blue">#1F76A4</color>
+    <color name="gekgoods_background">#EDEDEB</color>
+
+    <color name="gekgoods_primary">@color/gekgoods_blue</color>
     <color name="gekgoods_on_primary">#FFFFFF</color>
     <color name="gekgoods_primary_container">#D4E9F1</color>
     <color name="gekgoods_on_primary_container">#0B3448</color>
-    <color name="gekgoods_secondary">#18465D</color>
+    <color name="gekgoods_secondary">@color/gekgoods_navy</color>
     <color name="gekgoods_on_secondary">#FFFFFF</color>
     <color name="gekgoods_secondary_container">#D7E6EA</color>
     <color name="gekgoods_on_secondary_container">#183642</color>
@@ -11,9 +16,9 @@
     <color name="gekgoods_on_tertiary">#FFFFFF</color>
     <color name="gekgoods_tertiary_container">#D4E9F1</color>
     <color name="gekgoods_on_tertiary_container">#0B3448</color>
-    <color name="gekgoods_surface">#EDEDEB</color>
+    <color name="gekgoods_surface">@color/gekgoods_background</color>
     <color name="gekgoods_surface_variant">#E1E6E5</color>
-    <color name="gekgoods_on_surface">#19282E</color>
+    <color name="gekgoods_on_surface">@color/gekgoods_navy</color>
     <color name="gekgoods_on_surface_variant">#445961</color>
     <color name="gekgoods_outline">#6F8188</color>
     <color name="gekgoods_error">#B3261E</color>

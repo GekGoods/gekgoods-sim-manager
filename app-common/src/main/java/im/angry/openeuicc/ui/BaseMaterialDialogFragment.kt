@@ -8,13 +8,19 @@ import androidx.appcompat.view.ContextThemeWrapper
 import androidx.fragment.app.DialogFragment
 import com.google.android.material.color.DynamicColors
 import im.angry.openeuicc.common.R
+import im.angry.openeuicc.OpenEuiccApplication
 
 abstract class BaseMaterialDialogFragment : DialogFragment() {
     override fun onGetLayoutInflater(savedInstanceState: Bundle?): LayoutInflater {
         val inflater = super.onGetLayoutInflater(savedInstanceState)
         // Inherit the host app theme so branded app flavors keep their own color palette.
         val wrappedContext = ContextThemeWrapper(requireContext(), 0)
-        val dynamicWrappedContext = DynamicColors.wrapContextIfAvailable(wrappedContext)
+        val app = requireContext().applicationContext as? OpenEuiccApplication
+        val dynamicWrappedContext = if (app?.useDynamicColors != false) {
+            DynamicColors.wrapContextIfAvailable(wrappedContext)
+        } else {
+            wrappedContext
+        }
         return inflater.cloneInContext(dynamicWrappedContext)
     }
 

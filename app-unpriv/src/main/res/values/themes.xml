@@ -19,5 +19,10 @@
         <item name="colorOutline">@color/gekgoods_outline</item>
         <item name="colorError">@color/gekgoods_error</item>
         <item name="colorOnError">@color/gekgoods_on_error</item>
+        <!-- Keep legacy Android/AppCompat controls on the GekGoods palette. -->
+        <item name="colorAccent">@color/gekgoods_blue</item>
+        <item name="colorControlActivated">@color/gekgoods_blue</item>
+        <item name="colorControlNormal">@color/gekgoods_navy</item>
     </style>
+
 </resources>

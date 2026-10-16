@@ -6,6 +6,8 @@ import im.angry.openeuicc.di.AppContainer
 import im.angry.openeuicc.di.DefaultAppContainer
 
 open class OpenEuiccApplication : Application() {
+    open val useDynamicColors: Boolean = true
+
     open val appContainer: AppContainer by lazy {
         DefaultAppContainer(this)
     }
@@ -13,7 +15,9 @@ open class OpenEuiccApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Observe dynamic colors changes
-        DynamicColors.applyToActivitiesIfAvailable(this)
+        if (useDynamicColors) {
+            // Observe dynamic colors changes for the upstream/default application.
+            DynamicColors.applyToActivitiesIfAvailable(this)
+        }
     }
 }
