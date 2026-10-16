@@ -307,30 +307,27 @@ open class DefaultEuiccChannelManager(
                     usbChannels.forEach { it.close() }
                     usbChannels.clear()
                 } else {
-                    // If there is already a valid channel, we close it proactively
-                    if (reconnectingOmapi &&
-                        (euiccChannelFactory.isOmapiProtectionEnabled || euiccChannelFactory.isOmapiCleanupUnsafe)) {
-                        val staleChannels = channelCache.filter {
-                            it.slotId == physicalSlotId && it.portId == portId
+                    // Remove stale entries even when the platform rejects a second close. Keeping
+                    // them in the cache makes every retry attempt close the same broken channel.
+                    val staleChannels = channelCache.filter {
+                        it.slotId == physicalSlotId && it.portId == portId
+                    }
+                    channelCache.removeAll(staleChannels.toSet())
+                    staleChannels.forEach { channel ->
+                        if (euiccChannelFactory.isOmapiCleanupUnsafe &&
+                            channel.type == context.getString(R.string.channel_type_omapi)) {
+                            SeDiagnostics.event(channel, "manager.reconnect.channel.abandoned", "reason=reconnectTimeout")
+                            return@forEach
                         }
-                        // Remove stale entries even when the platform rejects a second close. Keeping
-                        // them in the cache makes every retry attempt close the same broken channel.
-                        channelCache.removeAll(staleChannels.toSet())
-                        staleChannels.forEach { channel ->
-                            if (euiccChannelFactory.isOmapiCleanupUnsafe &&
-                                channel.type == context.getString(R.string.channel_type_omapi)) {
-                                SeDiagnostics.event(channel, "manager.reconnect.channel.abandoned", "reason=reconnectTimeout")
-                                return@forEach
-                            }
-                            try {
-                                SeDiagnostics.trace(channel, "manager.reconnect.channel.close") { channel.close() }
-                            } catch (e: Exception) {
-                                Log.w(TAG, "Failed to close channel while reconnecting", e)
-                            }
+                        try {
+                            SeDiagnostics.trace(channel, "manager.reconnect.channel.close") { channel.close() }
+                        } catch (e: Exception) {
+                            // The OMAPI workaround must not alter privileged TelephonyManager
+                            // error propagation; keep the Samsung branch's legacy catch behavior
+                            // for generic stale-channel implementations.
+                            if (channel.type.contains("TelephonyManager", ignoreCase = true)) throw e
+                            Log.w(TAG, "Failed to close channel while reconnecting", e)
                         }
-                    } else {
-                        channelCache.filter { it.slotId == physicalSlotId && it.portId == portId }
-                            .forEach { it.close() }
                     }
                 }
                 SeDiagnostics.event(this, "manager.reconnect.reset.end")
