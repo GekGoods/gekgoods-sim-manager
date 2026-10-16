@@ -54,7 +54,7 @@ class ProfileDeleteFragment : DialogFragment(), EuiccChannelFragmentMarker {
         get() = requireDialog() as AlertDialog
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog =
-        AlertDialog.Builder(requireContext(), R.style.AlertDialogTheme)
+        AlertDialog.Builder(requireContext(), R.style.AlertDialogDestructiveTheme)
             .setMessage(getString(R.string.profile_delete_confirm, name))
             .setView(editText)
             // Set listener to null to prevent auto closing

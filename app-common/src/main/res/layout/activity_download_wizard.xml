@@ -49,10 +49,10 @@
             android:layout_height="48dp"
             android:background="?attr/selectableItemBackground"
             android:text="@string/download_wizard_back"
-            android:textColor="?attr/colorPrimary"
+            android:textColor="?attr/colorSecondary"
             app:icon="@drawable/ic_chevron_left"
             app:iconGravity="start"
-            app:iconTint="?attr/colorPrimary"
+            app:iconTint="?attr/colorSecondary"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 

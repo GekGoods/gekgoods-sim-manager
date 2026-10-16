@@ -35,7 +35,7 @@
             android:src="@drawable/ic_save_as_black"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:tint="?attr/colorAccent" />
+            app:tint="?attr/colorPrimary" />
 
         <TextView
             android:id="@+id/download_wizard_diagnostics_text"

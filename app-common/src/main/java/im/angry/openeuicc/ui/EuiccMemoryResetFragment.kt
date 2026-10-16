@@ -59,7 +59,7 @@ class EuiccMemoryResetFragment : DialogFragment(), EuiccChannelFragmentMarker {
         get() = requireDialog() as AlertDialog
 
     override fun onCreateDialog(savedInstanceState: Bundle?) =
-        AlertDialog.Builder(requireContext(), R.style.AlertDialogTheme)
+        AlertDialog.Builder(requireContext(), R.style.AlertDialogDestructiveTheme)
             .setTitle(R.string.euicc_memory_reset_title)
             .setMessage(getString(R.string.euicc_memory_reset_message, eid, confirmText))
             .setView(editText)

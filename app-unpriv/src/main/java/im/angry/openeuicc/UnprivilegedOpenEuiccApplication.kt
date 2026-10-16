@@ -8,6 +8,8 @@ import kotlinx.coroutines.runBlocking
 import kotlin.system.exitProcess
 
 class UnprivilegedOpenEuiccApplication : OpenEuiccApplication() {
+    override val useDynamicColors: Boolean = false
+
     override val appContainer by lazy {
         UnprivilegedAppContainer(this)
     }
