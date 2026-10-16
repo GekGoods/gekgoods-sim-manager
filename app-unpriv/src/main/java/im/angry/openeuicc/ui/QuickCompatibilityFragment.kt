@@ -1,6 +1,8 @@
 package im.angry.openeuicc.ui
 
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.icu.text.ListFormatter
 import android.os.Build
 import android.os.Bundle
@@ -21,6 +23,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+
+private const val BUY_ADAPTER_URL = "https://gekgoods.github.io/index.html#buy"
 
 open class QuickCompatibilityFragment : Fragment(), UnprivilegedEuiccContextMarker {
     companion object {
@@ -65,6 +69,10 @@ open class QuickCompatibilityFragment : Fragment(), UnprivilegedEuiccContextMark
             .text = formatDeviceInformation()
         requireViewById<Button>(R.id.quick_compatibility_button_continue)
             .setOnClickListener { onContinueToApp() }
+        requireViewById<Button>(R.id.quick_compatibility_button_buy_adapter)
+            .setOnClickListener {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BUY_ADAPTER_URL)))
+            }
         // Can't use the lazy field yet
         requireViewById<CheckBox>(R.id.quick_compatibility_skip).setOnCheckedChangeListener { compoundButton, b ->
             if (compoundButton.isVisible) {
