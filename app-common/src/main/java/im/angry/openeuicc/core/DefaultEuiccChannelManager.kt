@@ -288,29 +288,14 @@ open class DefaultEuiccChannelManager(
             channelCache.filter { it.slotId == physicalSlotId && it.portId == portId }.size
         }
 
-        val samsungReconnectFixEnabled =
-            appContainer.preferenceRepository.samsungReconnectFixFlow.first()
-
         val resetChannels = {
             if (physicalSlotId == EuiccChannelManager.USB_CHANNEL_ID) {
                 usbChannels.forEach { it.close() }
                 usbChannels.clear()
             } else {
-                // If there is already a valid channel, we close it proactively.
-                val staleChannels =
-                    channelCache.filter { it.slotId == physicalSlotId && it.portId == portId }
-                if (samsungReconnectFixEnabled) {
-                    channelCache.removeAll(staleChannels.toSet())
-                    staleChannels.forEach { channel ->
-                        try {
-                            channel.close()
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Failed to close channel while reconnecting", e)
-                        }
-                    }
-                } else {
-                    staleChannels.forEach { it.close() }
-                }
+                // If there is already a valid channel, we close it proactively
+                channelCache.filter { it.slotId == physicalSlotId && it.portId == portId }
+                    .forEach { it.close() }
             }
         }
 

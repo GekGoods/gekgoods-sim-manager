@@ -7,7 +7,6 @@ import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.preference.Preference
-import androidx.preference.CheckBoxPreference
 import com.gekgoods.simmanager.R
 import im.angry.openeuicc.util.*
 import java.security.MessageDigest
@@ -25,10 +24,6 @@ class UnprivilegedSettingsFragment : SettingsFragment() {
         super.onCreatePreferences(savedInstanceState, rootKey)
         addPreferencesFromResource(R.xml.pref_unprivileged_settings)
         mergePreferenceOverlay("pref_info_overlay", "pref_info")
-        mergePreferenceOverlay("pref_advanced_overlay", "pref_advanced")
-
-        requirePreference<CheckBoxPreference>("pref_advanced_samsung_reconnect_fix")
-            .bindBooleanFlow(preferenceRepository.samsungReconnectFixFlow)
 
         requirePreference<Preference>("pref_info_ara_m").apply {
             summary = firstSigner.encodeHex()

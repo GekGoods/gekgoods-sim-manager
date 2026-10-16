@@ -9,13 +9,4 @@
             app:key="pref_info_ara_m"
             app:title="@string/pref_developer_ara_m" />
     </PreferenceCategory>
-    <PreferenceCategory
-        app:isPreferenceVisible="false"
-        app:key="pref_advanced_overlay">
-        <CheckBoxPreference
-            app:iconSpaceReserved="false"
-            app:key="pref_advanced_samsung_reconnect_fix"
-            app:title="@string/pref_advanced_samsung_reconnect_fix"
-            app:summary="@string/pref_advanced_samsung_reconnect_fix_summary" />
-    </PreferenceCategory>
 </PreferenceScreen>
