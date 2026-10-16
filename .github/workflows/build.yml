@@ -96,7 +96,7 @@ jobs:
           apk_sha1="$(
             printf '%s\n' "$apk_cert_output" \
               | grep -iA2 'certificate[[:space:]]+sha-1[[:space:]]+digest' \
-              | grep -oE '[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){19}' \
+              | grep -oE '[0-9A-Fa-f]{40}' \
               | head -n 1 \
               | tr -d ':' \
               | tr '[:lower:]' '[:upper:]' \
