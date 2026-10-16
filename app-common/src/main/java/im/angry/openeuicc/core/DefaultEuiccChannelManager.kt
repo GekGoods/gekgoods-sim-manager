@@ -294,7 +294,8 @@ open class DefaultEuiccChannelManager(
                 usbChannels.clear()
             } else {
                 // If there is already a valid channel, we close it proactively
-                channelCache.filter { it.slotId == physicalSlotId && it.portId == portId }.forEach { it.close() }
+                channelCache.filter { it.slotId == physicalSlotId && it.portId == portId }
+                    .forEach { it.close() }
             }
         }
 

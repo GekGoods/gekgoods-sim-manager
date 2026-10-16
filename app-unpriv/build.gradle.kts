@@ -17,16 +17,14 @@ apply {
 }
 
 android {
-    namespace = "im.angry.easyeuicc"
+    namespace = "com.gekgoods.simmanager"
     compileSdk = 37
     ndkVersion = "26.1.10909125"
 
     defaultConfig {
-        applicationId = "im.angry.easyeuicc"
+        applicationId = "com.gekgoods.simmanager"
         minSdk = 28
         targetSdk = 37
-
-        emitAssetStatements("https://easyeuicc.org", "https://preview.easyeuicc.org")
     }
 
     buildFeatures {

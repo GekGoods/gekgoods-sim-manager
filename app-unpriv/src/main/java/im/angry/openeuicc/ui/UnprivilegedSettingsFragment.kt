@@ -7,7 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.preference.Preference
-import im.angry.easyeuicc.R
+import com.gekgoods.simmanager.R
 import im.angry.openeuicc.util.*
 import java.security.MessageDigest
 

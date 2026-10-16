@@ -1,0 +1,21 @@
+<resources>
+    <color name="gekgoods_primary">#1F76A4</color>
+    <color name="gekgoods_on_primary">#FFFFFF</color>
+    <color name="gekgoods_primary_container">#D4E9F1</color>
+    <color name="gekgoods_on_primary_container">#0B3448</color>
+    <color name="gekgoods_secondary">#18465D</color>
+    <color name="gekgoods_on_secondary">#FFFFFF</color>
+    <color name="gekgoods_secondary_container">#D7E6EA</color>
+    <color name="gekgoods_on_secondary_container">#183642</color>
+    <color name="gekgoods_tertiary">#1F76A4</color>
+    <color name="gekgoods_on_tertiary">#FFFFFF</color>
+    <color name="gekgoods_tertiary_container">#D4E9F1</color>
+    <color name="gekgoods_on_tertiary_container">#0B3448</color>
+    <color name="gekgoods_surface">#EDEDEB</color>
+    <color name="gekgoods_surface_variant">#E1E6E5</color>
+    <color name="gekgoods_on_surface">#19282E</color>
+    <color name="gekgoods_on_surface_variant">#445961</color>
+    <color name="gekgoods_outline">#6F8188</color>
+    <color name="gekgoods_error">#B3261E</color>
+    <color name="gekgoods_on_error">#FFFFFF</color>
+</resources>

@@ -1,0 +1,23 @@
+<resources>
+    <style name="Theme.GekGoods" parent="Theme.OpenEUICC">
+        <item name="colorPrimary">@color/gekgoods_primary</item>
+        <item name="colorOnPrimary">@color/gekgoods_on_primary</item>
+        <item name="colorPrimaryContainer">@color/gekgoods_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/gekgoods_on_primary_container</item>
+        <item name="colorSecondary">@color/gekgoods_secondary</item>
+        <item name="colorOnSecondary">@color/gekgoods_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/gekgoods_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/gekgoods_on_secondary_container</item>
+        <item name="colorTertiary">@color/gekgoods_tertiary</item>
+        <item name="colorOnTertiary">@color/gekgoods_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/gekgoods_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/gekgoods_on_tertiary_container</item>
+        <item name="colorSurface">@color/gekgoods_surface</item>
+        <item name="colorSurfaceVariant">@color/gekgoods_surface_variant</item>
+        <item name="colorOnSurface">@color/gekgoods_on_surface</item>
+        <item name="colorOnSurfaceVariant">@color/gekgoods_on_surface_variant</item>
+        <item name="colorOutline">@color/gekgoods_outline</item>
+        <item name="colorError">@color/gekgoods_error</item>
+        <item name="colorOnError">@color/gekgoods_on_error</item>
+    </style>
+</resources>
