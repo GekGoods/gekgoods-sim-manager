@@ -29,8 +29,77 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
 
+      - name: Prepare community signing files
+        shell: bash
+        run: |
+          set -euo pipefail
+          keystore="$GITHUB_WORKSPACE/signing/community.jks"
+          expected_blob_sha=c83da7b43bad7fd98c705415a1653616740e0eb3
+          expected_cert_sha1=C47350C7BA682B34A3E584A0D58463EA42B1AD73
+
+          test -f "$keystore" || { echo "Missing $keystore"; exit 1; }
+          actual_blob_sha="$(git hash-object "$keystore")"
+          test "$actual_blob_sha" = "$expected_blob_sha" || {
+            echo "Community keystore blob SHA mismatch: $actual_blob_sha"
+            exit 1
+          }
+
+          keytool_output="$(mktemp)"
+          trap 'rm -f "$keytool_output"' EXIT
+          keytool -J-Duser.language=en -J-Duser.country=US \
+            -list -v -keystore "$keystore" -storetype JKS \
+            -storepass CommunityKey > "$keytool_output"
+
+          key_alias="$(awk -F': ' '/^Alias name: / { print $2; exit }' "$keytool_output")"
+          entry_type="$(awk -F': ' '/^Entry type: / { print $2; exit }' "$keytool_output")"
+          actual_cert_sha1="$(awk -F': ' '/^SHA1: / { gsub(/:/, "", $2); print toupper($2); exit }' "$keytool_output")"
+
+          [[ "$key_alias" =~ ^[A-Za-z0-9._-]+$ ]] || {
+            echo "Could not determine a safe private-key alias"
+            exit 1
+          }
+          test "$entry_type" = "PrivateKeyEntry" || {
+            echo "Community keystore does not contain a private key entry"
+            exit 1
+          }
+          test "$actual_cert_sha1" = "$expected_cert_sha1" || {
+            echo "Community certificate SHA-1 mismatch: $actual_cert_sha1"
+            exit 1
+          }
+
+          cat > keystore.properties <<EOF
+          storeFile=$keystore
+          storePassword=CommunityKey
+          keyAlias=$key_alias
+          keyPassword=CommunityKey
+          unprivKeyAlias=$key_alias
+          unprivKeyPassword=CommunityKey
+          EOF
+
+          echo "Verified community certificate SHA-1: $actual_cert_sha1"
+
       - name: Build app debug APK
         run: ./gradlew --no-daemon :app-unpriv:assembleDebug
+
+      - name: Verify APK signing certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_cert_sha1=C47350C7BA682B34A3E584A0D58463EA42B1AD73
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          apk="$(find app-unpriv/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' | head -n 1)"
+
+          test -x "$apksigner" || { echo "Android apksigner was not found"; exit 1; }
+          test -n "$apk" || { echo "Debug APK was not found"; exit 1; }
+
+          apk_sha1="$("$apksigner" verify --print-certs "$apk" \
+            | awk -F': ' '/certificate SHA-1 digest:/ { gsub(/:/, "", $2); print toupper($2); exit }')"
+          test "$apk_sha1" = "$expected_cert_sha1" || {
+            echo "Debug APK signer mismatch: $apk_sha1"
+            exit 1
+          }
+
+          echo "Debug APK uses the verified ShiinaSekiu community certificate."
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4

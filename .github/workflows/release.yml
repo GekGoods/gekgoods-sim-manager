@@ -1,9 +1,10 @@
-name: Build and publish signed GekGoods release
+name: Build and publish community-signed GekGoods release
 
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -28,36 +29,88 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
 
-      - name: Prepare signing files
-        env:
-          SIGNING_CONFIG_B64: ${{ secrets.GEKGOODS_SIGNING_CONFIG }}
-          KEYSTORE_B64: ${{ secrets.GEKGOODS_KEYSTORE_BASE64 }}
+      - name: Prepare community signing files
         run: |
           set -euo pipefail
-          test -n "$SIGNING_CONFIG_B64" || { echo 'Missing GEKGOODS_SIGNING_CONFIG secret'; exit 1; }
-          test -n "$KEYSTORE_B64" || { echo 'Missing GEKGOODS_KEYSTORE_BASE64 secret'; exit 1; }
-          printf '%s' "$SIGNING_CONFIG_B64" | base64 --decode > keystore.properties
-          printf '%s' "$KEYSTORE_B64" | base64 --decode > release-keystore
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
+          keystore="$GITHUB_WORKSPACE/signing/community.jks"
+          expected_blob_sha=c83da7b43bad7fd98c705415a1653616740e0eb3
+          expected_cert_sha1=C47350C7BA682B34A3E584A0D58463EA42B1AD73
 
-          props = Path("keystore.properties")
-          content = props.read_text()
-          replacement = f"storeFile={Path('release-keystore').resolve()}"
-          content, count = re.subn(r"(?m)^\s*storeFile\s*=.*$", replacement, content)
-          if count > 1:
-              raise SystemExit("Signing config has more than one storeFile property")
-          if count == 0:
-              content = content.rstrip() + "\n" + replacement + "\n"
-          props.write_text(content)
-          PY
+          test -f "$keystore" || { echo "Missing $keystore"; exit 1; }
+          actual_blob_sha="$(git hash-object "$keystore")"
+          test "$actual_blob_sha" = "$expected_blob_sha" || {
+            echo "Community keystore blob SHA mismatch: $actual_blob_sha"
+            exit 1
+          }
+
+          keytool_output="$(mktemp)"
+          trap 'rm -f "$keytool_output"' EXIT
+          keytool -J-Duser.language=en -J-Duser.country=US \
+            -list -v -keystore "$keystore" -storetype JKS \
+            -storepass CommunityKey > "$keytool_output"
+
+          key_alias="$(awk -F': ' '/^Alias name: / { print $2; exit }' "$keytool_output")"
+          entry_type="$(awk -F': ' '/^Entry type: / { print $2; exit }' "$keytool_output")"
+          actual_cert_sha1="$(awk -F': ' '/^SHA1: / { gsub(/:/, "", $2); print toupper($2); exit }' "$keytool_output")"
+
+          [[ "$key_alias" =~ ^[A-Za-z0-9._-]+$ ]] || {
+            echo "Could not determine a safe private-key alias"
+            exit 1
+          }
+          test "$entry_type" = "PrivateKeyEntry" || {
+            echo "Community keystore does not contain a private key entry"
+            exit 1
+          }
+          test "$actual_cert_sha1" = "$expected_cert_sha1" || {
+            echo "Community certificate SHA-1 mismatch: $actual_cert_sha1"
+            exit 1
+          }
+
+          cat > keystore.properties <<EOF
+          storeFile=$keystore
+          storePassword=CommunityKey
+          keyAlias=$key_alias
+          keyPassword=CommunityKey
+          unprivKeyAlias=$key_alias
+          unprivKeyPassword=CommunityKey
+          EOF
+
+          echo "Verified community certificate SHA-1: $actual_cert_sha1"
 
       - name: Build signed app
         run: >-
           ./gradlew --no-daemon
           :app-unpriv:assembleRelease
           :app-unpriv:bundleRelease
+
+      - name: Verify APK and AAB signing certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_cert_sha1=C47350C7BA682B34A3E584A0D58463EA42B1AD73
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          apk="$(find app-unpriv/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' | head -n 1)"
+          aab="$(find app-unpriv/build/outputs/bundle/release -maxdepth 1 -type f -name '*.aab' | head -n 1)"
+
+          test -x "$apksigner" || { echo "Android apksigner was not found"; exit 1; }
+          test -n "$apk" || { echo "Release APK was not found"; exit 1; }
+          test -n "$aab" || { echo "Release AAB was not found"; exit 1; }
+
+          apk_sha1="$("$apksigner" verify --print-certs "$apk" \
+            | awk -F': ' '/certificate SHA-1 digest:/ { gsub(/:/, "", $2); print toupper($2); exit }')"
+          aab_sha1="$(keytool -printcert -jarfile "$aab" \
+            | awk -F': ' '/^SHA1: / { gsub(/:/, "", $2); print toupper($2); exit }')"
+
+          test "$apk_sha1" = "$expected_cert_sha1" || {
+            echo "Release APK signer mismatch: $apk_sha1"
+            exit 1
+          }
+          test "$aab_sha1" = "$expected_cert_sha1" || {
+            echo "Release AAB signer mismatch: $aab_sha1"
+            exit 1
+          }
+
+          echo "APK and AAB use the verified ShiinaSekiu community certificate."
 
       - name: Collect release artifacts
         run: |
@@ -66,7 +119,16 @@ jobs:
           cp app-unpriv/build/outputs/apk/release/*.apk release-assets/gekgoods-sim-manager.apk
           cp app-unpriv/build/outputs/bundle/release/*.aab release-assets/gekgoods-sim-manager.aab
 
+      - name: Upload community-signed artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gekgoods-sim-manager-community-signed
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
