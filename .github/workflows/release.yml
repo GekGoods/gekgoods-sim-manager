@@ -115,14 +115,20 @@ jobs:
       - name: Collect release artifacts
         run: |
           set -euo pipefail
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+            release_label="$GITHUB_REF_NAME"
+          else
+            release_label="manual-${GITHUB_SHA:0:7}"
+          fi
+
           mkdir -p release-assets
-          cp app-unpriv/build/outputs/apk/release/*.apk release-assets/gekgoods-sim-manager.apk
-          cp app-unpriv/build/outputs/bundle/release/*.aab release-assets/gekgoods-sim-manager.aab
+          cp app-unpriv/build/outputs/apk/release/*.apk "release-assets/gekgoods-sim-manager-${release_label}.apk"
+          cp app-unpriv/build/outputs/bundle/release/*.aab "release-assets/gekgoods-sim-manager-${release_label}.aab"
 
       - name: Upload community-signed artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: gekgoods-sim-manager-community-signed
+          name: gekgoods-sim-manager-community-signed-${{ github.ref_name || github.sha }}
           path: release-assets/*
           if-no-files-found: error
           retention-days: 14
