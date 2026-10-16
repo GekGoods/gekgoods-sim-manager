@@ -1,11 +1,15 @@
 package im.angry.openeuicc.di
 
 import android.content.Context
+import android.net.Uri
 import com.gekgoods.simmanager.R
 import im.angry.openeuicc.core.EuiccChannel
 import im.angry.openeuicc.util.*
 
 class UnprivilegedCustomizableTextProvider(private val context: Context) : DefaultCustomizableTextProvider(context) {
+    override val websiteUri: Uri
+        get() = Uri.parse("https://gekgoods.github.io")
+
     override fun formatNonUsbChannelName(logicalSlotId: Int): String =
         context.getString(R.string.channel_name_format_unpriv, logicalSlotId)
 
