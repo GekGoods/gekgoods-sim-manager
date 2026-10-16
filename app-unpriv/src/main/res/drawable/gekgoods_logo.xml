@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scale xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/gekgoods_logo_bitmap"
+    android:scaleGravity="center"
+    android:scaleHeight="75%"
+    android:scaleWidth="75%" />

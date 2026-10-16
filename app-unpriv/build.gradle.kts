@@ -21,6 +21,12 @@ android {
     compileSdk = 37
     ndkVersion = "26.1.10909125"
 
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+
     defaultConfig {
         applicationId = "com.gekgoods.simmanager"
         minSdk = 28
@@ -32,9 +38,6 @@ android {
     }
 
     buildTypes {
-        defaultConfig {
-            versionNameSuffix = "-unpriv"
-        }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -51,4 +54,6 @@ kotlin {
 dependencies {
     implementation(project(":app-common"))
     testImplementation("junit:junit:4.13.2")
+    testImplementation("androidx.test:core:1.7.0")
+    testImplementation("org.robolectric:robolectric:4.17-beta-4")
 }
