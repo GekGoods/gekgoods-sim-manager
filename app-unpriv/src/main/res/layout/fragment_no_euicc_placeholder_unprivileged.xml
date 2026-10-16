@@ -21,7 +21,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:text="@string/compatibility_check"
-        style="@style/Widget.OpenEUICC.Button.Secondary"
+        style="@style/Widget.OpenEUICC.Button.Primary"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/no_euicc_placeholder" />
