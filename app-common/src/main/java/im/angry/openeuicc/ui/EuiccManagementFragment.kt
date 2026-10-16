@@ -189,18 +189,11 @@ open class EuiccManagementFragment : Fragment(), EuiccProfilesChangedListener,
         }
 
     private fun refresh() {
-        if (invalid) {
-            swipeRefresh.isRefreshing = false
-            return
-        }
+        if (invalid) return
         swipeRefresh.isRefreshing = true
 
         lifecycleScope.launch {
-            try {
-                doRefresh()
-            } finally {
-                swipeRefresh.isRefreshing = false
-            }
+            doRefresh()
         }
     }
 
@@ -233,6 +226,7 @@ open class EuiccManagementFragment : Fragment(), EuiccProfilesChangedListener,
             adapter.profiles = profiles
             adapter.footerViews = onCreateFooterViews(profileList, profiles)
             adapter.notifyDataSetChanged()
+            swipeRefresh.isRefreshing = false
         }
     }
 
