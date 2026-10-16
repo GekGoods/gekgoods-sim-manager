@@ -95,7 +95,7 @@ jobs:
           apk_cert_output="$("$apksigner" verify --print-certs "$apk" 2>&1 || true)"
           apk_sha1="$(
             printf '%s\n' "$apk_cert_output" \
-              | grep -iA2 'certificate[[:space:]]+sha-1[[:space:]]+digest' \
+              | grep -iEA2 'certificate[[:space:]]+sha-1[[:space:]]+digest' \
               | grep -oE '[0-9A-Fa-f]{40}' \
               | head -n 1 \
               | tr -d ':' \
