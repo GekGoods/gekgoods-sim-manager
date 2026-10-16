@@ -1,6 +1,6 @@
 # GekGoods SIM Manager
 
-GekGoods SIM Manager is an independent fork of [OpenEUICC](https://github.com/estkme-group/openeuicc), an open-source Android Local Profile Assistant. It provides a GekGoods-branded app for managing compatible eSIMs.
+GekGoods SIM Manager is an independent fork of [OpenEUICC](https://gitea.angry.im/PeterCxy/OpenEUICC), an open-source Android Local Profile Assistant. It provides a GekGoods-branded app for managing compatible eSIMs.
 
 This repository contains the corresponding source for distributed GekGoods SIM Manager builds. It is not an official OpenEUICC or EasyEUICC release.
 
