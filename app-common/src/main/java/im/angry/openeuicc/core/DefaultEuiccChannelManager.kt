@@ -291,13 +291,17 @@ open class DefaultEuiccChannelManager(
     override suspend fun waitForReconnect(physicalSlotId: Int, portId: Int, timeoutMillis: Long) =
         SeDiagnostics.traceSuspending(this, "manager.reconnect",
             "slot=$physicalSlotId port=$portId timeoutMs=$timeoutMillis") {
+            val samsungReconnectFixEnabled =
+                appContainer.preferenceRepository.samsungReconnectFixFlow.first()
+
             val numChannelsBefore = if (physicalSlotId == EuiccChannelManager.USB_CHANNEL_ID) {
                 usbChannels.size
             } else {
                 // Don't use find* methods since they reopen channels if not found
                 channelCache.filter { it.slotId == physicalSlotId && it.portId == portId }.size
             }
-            val reconnectingOmapi = physicalSlotId != EuiccChannelManager.USB_CHANNEL_ID &&
+            val reconnectingOmapi = samsungReconnectFixEnabled &&
+                physicalSlotId != EuiccChannelManager.USB_CHANNEL_ID &&
                 channelCache.any { it.slotId == physicalSlotId && it.portId == portId &&
                     it.type == context.getString(R.string.channel_type_omapi) }
 
@@ -306,7 +310,7 @@ open class DefaultEuiccChannelManager(
                 if (physicalSlotId == EuiccChannelManager.USB_CHANNEL_ID) {
                     usbChannels.forEach { it.close() }
                     usbChannels.clear()
-                } else {
+                } else if (samsungReconnectFixEnabled) {
                     // Remove stale entries even when the platform rejects a second close. Keeping
                     // them in the cache makes every retry attempt close the same broken channel.
                     val staleChannels = channelCache.filter {
@@ -329,6 +333,9 @@ open class DefaultEuiccChannelManager(
                             Log.w(TAG, "Failed to close channel while reconnecting", e)
                         }
                     }
+                } else {
+                    channelCache.filter { it.slotId == physicalSlotId && it.portId == portId }
+                        .forEach { it.close() }
                 }
                 SeDiagnostics.event(this, "manager.reconnect.reset.end")
             }

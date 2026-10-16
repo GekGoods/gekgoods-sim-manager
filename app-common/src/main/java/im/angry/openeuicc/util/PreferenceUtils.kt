@@ -32,6 +32,7 @@ internal object PreferenceKeys {
     val DISABLE_SAFEGUARD_REMOVABLE_ESIM = booleanPreferencesKey("disable_safeguard_removable_esim")
     val VERBOSE_LOGGING = booleanPreferencesKey("verbose_logging")
     val FORCE_TPDU_MODE = booleanPreferencesKey("force_tpdu_mode")
+    val SAMSUNG_RECONNECT_FIX = booleanPreferencesKey("samsung_reconnect_fix")
 
     // ---- Developer Options ----
     val DEVELOPER_OPTIONS_ENABLED = booleanPreferencesKey("developer_options_enabled")
@@ -90,6 +91,7 @@ open class PreferenceRepository(private val context: Context) {
     val disableSafeguardFlow = bindFlow(PreferenceKeys.DISABLE_SAFEGUARD_REMOVABLE_ESIM, false)
     val verboseLoggingFlow = bindFlow(PreferenceKeys.VERBOSE_LOGGING, false)
     val forceTpduModeFlow = bindFlow(PreferenceKeys.FORCE_TPDU_MODE, false)
+    val samsungReconnectFixFlow = bindFlow(PreferenceKeys.SAMSUNG_RECONNECT_FIX, true)
 
     // ---- Developer Options ----
     val refreshAfterSwitchFlow = bindFlow(PreferenceKeys.REFRESH_AFTER_SWITCH, true)
