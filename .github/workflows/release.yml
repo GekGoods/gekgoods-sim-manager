@@ -51,7 +51,7 @@ jobs:
 
           key_alias="$(awk -F': ' '/^Alias name: / { print $2; exit }' "$keytool_output")"
           entry_type="$(awk -F': ' '/^Entry type: / { print $2; exit }' "$keytool_output")"
-          actual_cert_sha1="$(awk -F': ' '/^SHA1: / { gsub(/:/, "", $2); print toupper($2); exit }' "$keytool_output")"
+          actual_cert_sha1="$(awk '/^[[:space:]]*SHA1:/ { sub(/^[^:]*:[[:space:]]*/, ""); gsub(/:/, ""); print toupper($0); exit }' "$keytool_output")"
 
           [[ "$key_alias" =~ ^[A-Za-z0-9._-]+$ ]] || {
             echo "Could not determine a safe private-key alias"
@@ -99,7 +99,7 @@ jobs:
           apk_sha1="$("$apksigner" verify --print-certs "$apk" \
             | awk -F': ' '/certificate SHA-1 digest:/ { gsub(/:/, "", $2); print toupper($2); exit }')"
           aab_sha1="$(keytool -printcert -jarfile "$aab" \
-            | awk -F': ' '/^SHA1: / { gsub(/:/, "", $2); print toupper($2); exit }')"
+            | awk '/^[[:space:]]*SHA1:/ { sub(/^[^:]*:[[:space:]]*/, ""); gsub(/:/, ""); print toupper($0); exit }')"
 
           test "$apk_sha1" = "$expected_cert_sha1" || {
             echo "Release APK signer mismatch: $apk_sha1"
