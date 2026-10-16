@@ -60,4 +60,12 @@
         android:text="@string/quick_compatibility_button_continue"
         style="@style/Widget.OpenEUICC.Button.Primary" />
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/quick_compatibility_button_buy_adapter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="@string/quick_compatibility_button_buy_adapter"
+        style="@style/Widget.OpenEUICC.Button.Secondary" />
+
 </LinearLayout>
