@@ -7,7 +7,7 @@ import android.view.MenuItem
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.graphics.drawable.IconCompat
 import androidx.core.graphics.drawable.toBitmap
-import im.angry.easyeuicc.R
+import com.gekgoods.simmanager.R
 import im.angry.openeuicc.util.*
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking

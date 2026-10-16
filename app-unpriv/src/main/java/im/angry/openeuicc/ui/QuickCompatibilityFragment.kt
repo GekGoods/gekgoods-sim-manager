@@ -15,7 +15,7 @@ import androidx.core.os.ConfigurationCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import im.angry.easyeuicc.R
+import com.gekgoods.simmanager.R
 import im.angry.openeuicc.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

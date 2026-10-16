@@ -37,7 +37,7 @@ class MyVersioningPlugin : Plugin<Project> {
             }
 
             applicationVariants.all {
-                if (name == "debug") {
+                if (buildType.name == "debug") {
                     val versionCode = (System.currentTimeMillis() / 1000).toInt()
                     // format: <tag>-<commits>-g<hash>[-dirty][-suffix]
                     val versionName = target.getGitVersionName("--long")

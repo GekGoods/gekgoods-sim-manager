@@ -6,6 +6,10 @@
 
 /keystore.properties
 /local.properties
+/.local-signing/
+/.codex/
+/.tmp-brand-kit-review/
+/GekGoods Branding.zip
 
 # macOS
 

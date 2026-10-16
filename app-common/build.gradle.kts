@@ -15,6 +15,10 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     testOptions {
         unitTests {
             // Robolectric needs real resources (e.g. task titles) to test the real service

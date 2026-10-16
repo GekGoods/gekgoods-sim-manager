@@ -12,7 +12,8 @@ import im.angry.openeuicc.common.R
 abstract class BaseMaterialDialogFragment : DialogFragment() {
     override fun onGetLayoutInflater(savedInstanceState: Bundle?): LayoutInflater {
         val inflater = super.onGetLayoutInflater(savedInstanceState)
-        val wrappedContext = ContextThemeWrapper(requireContext(), R.style.Theme_OpenEUICC)
+        // Inherit the host app theme so branded app flavors keep their own color palette.
+        val wrappedContext = ContextThemeWrapper(requireContext(), 0)
         val dynamicWrappedContext = DynamicColors.wrapContextIfAvailable(wrappedContext)
         return inflater.cloneInContext(dynamicWrappedContext)
     }
