@@ -10,8 +10,8 @@
 
     <!-- Settings -->
     <string name="pref_developer_ara_m" translatable="false">ARA-M SHA-1</string>
-    <string name="pref_advanced_samsung_reconnect_fix">Samsung adapter fix</string>
-    <string name="pref_advanced_samsung_reconnect_fix_summary">Use safer reconnect handling for Samsung phones and removable eSIM adapters.</string>
+    <string name="pref_advanced_samsung_reconnect_fix">Fix Samsung reconnecting</string>
+    <string name="pref_advanced_samsung_reconnect_fix_summary">Try this if the app stays on Loading when you switch a profile.</string>
     <!-- Toast -->
     <string name="toast_ara_m_copied">ARA-M SHA-1 copied to clipboard</string>
     <string name="toast_prompt_to_enable_sim_toolkit">Please ENABLE your \"%s\" application</string>
