@@ -15,6 +15,7 @@
     <color name="gekgoods_surface_variant">#29363B</color>
     <color name="gekgoods_on_surface">#E4ECEF</color>
     <color name="gekgoods_on_surface_variant">#C1CFD4</color>
+    <color name="gekgoods_control_normal">#EDEDEB</color>
     <color name="gekgoods_outline">#87999F</color>
     <color name="gekgoods_error">#FFB4AB</color>
     <color name="gekgoods_on_error">#690005</color>
