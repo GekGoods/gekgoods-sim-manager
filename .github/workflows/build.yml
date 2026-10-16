@@ -92,8 +92,18 @@ jobs:
           test -x "$apksigner" || { echo "Android apksigner was not found"; exit 1; }
           test -n "$apk" || { echo "Debug APK was not found"; exit 1; }
 
-          apk_sha1="$("$apksigner" verify --print-certs "$apk" \
-            | awk -F': ' '/certificate SHA-1 digest:/ { gsub(/:/, "", $2); print toupper($2); exit }')"
+          apk_sha1="$(
+            "$apksigner" verify --print-certs "$apk" 2>&1 \
+              | grep -iE 'certificate[[:space:]]+sha-1[[:space:]]+digest' \
+              | grep -oE '[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){19}' \
+              | head -n 1 \
+              | tr -d ':' \
+              | tr '[:lower:]' '[:upper:]'
+          )"
+          if [[ ! "$apk_sha1" =~ ^[0-9A-F]{40}$ ]]; then
+            echo "Could not extract a 40-character APK signer SHA-1 digest: $apk_sha1"
+            exit 1
+          fi
           test "$apk_sha1" = "$expected_cert_sha1" || {
             echo "Debug APK signer mismatch: $apk_sha1"
             exit 1
