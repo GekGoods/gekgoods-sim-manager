@@ -16,6 +16,19 @@ apply {
     plugin<MySigningPlugin>()
 }
 
+// Release builds can opt into a Play Store version without changing the
+// versionCode=1 convention used by locally installed test APKs. The visible
+// Play version name is always formatted as gekgoods-v<four-part-version>.
+val releaseVersion = providers.gradleProperty("gekgoodsReleaseVersion").orNull
+releaseVersion?.let {
+    require(Regex("""\d+\.\d+\.\d+\.\d+""").matches(it)) {
+        "gekgoodsReleaseVersion must be four numeric components (for example, 1.7.2.2)"
+    }
+}
+val releaseVersionCode = providers.gradleProperty("gekgoodsReleaseVersionCode")
+    .map { value -> value.toIntOrNull() ?: error("gekgoodsReleaseVersionCode must be an integer") }
+    .orNull
+
 android {
     namespace = "com.gekgoods.simmanager"
     compileSdk = 37
@@ -30,7 +43,8 @@ android {
     defaultConfig {
         applicationId = "com.gekgoods.simmanager"
         // Preserve the installed test APK's code so subsequent versionCode=1 builds remain installable.
-        versionCode = 1
+        versionCode = releaseVersionCode ?: 1
+        releaseVersion?.let { versionName = "gekgoods-v$it" }
         minSdk = 28
         targetSdk = 37
     }
